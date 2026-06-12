@@ -211,15 +211,17 @@ function UI:DrawGems()
         lblStats:SetJustifyH("LEFT")
         
         -- Display Unique flag and Score
-        local infoText = ""
-        if g.isUnique then
-            infoText = "|cffff3333[" .. (L.UNIQUE_GEM or "Unique") .. "]|r "
-        end
-        
         local lblScore = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        lblScore:SetPoint("RIGHT", row, "RIGHT", -5, 0)
-        lblScore:SetText(infoText .. "|cff00ff00" .. math.floor(g.score / 1000) .. "|r")
+        lblScore:SetPoint("RIGHT", row, "RIGHT", -5, 5)
+        lblScore:SetText("|cff00ff00" .. math.floor(g.score / 1000) .. "|r")
         lblScore:SetJustifyH("RIGHT")
+        
+        if g.isUnique then
+            local lblUnique = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            lblUnique:SetPoint("RIGHT", row, "RIGHT", -5, -8)
+            lblUnique:SetText("|cffff3333[" .. (L.UNIQUE_GEM or "Unique") .. "]|r")
+            lblUnique:SetJustifyH("RIGHT")
+        end
         
         leftOffsetY = leftOffsetY + 38
     end
@@ -244,21 +246,21 @@ function UI:DrawGems()
     -- Track unique gems already equipped to avoid recommending duplicate uniques
     local function ScanUniques(itemsList)
         local uniques = {}
-        local hasMeta = false
+        local metaCount = 0
         for _, item in ipairs(itemsList) do
             for _, gemId in ipairs(item.filledGems) do
                 if gemId > 0 then
                     if IsItemUniqueEquipped(gemId) then
-                        uniques[gemId] = true
+                        uniques[gemId] = (uniques[gemId] or 0) + 1
                     end
                     local _, _, gemData = ItemEvaluator:FindGemInDB(gemId)
                     if gemData and gemData.isMeta then
-                        hasMeta = true
+                        metaCount = metaCount + 1
                     end
                 end
             end
         end
-        return uniques, hasMeta
+        return uniques, metaCount
     end
     
     -- Recommender function based on available gems, unique status and meta preference
@@ -281,15 +283,15 @@ function UI:DrawGems()
             if isGemMeta then
                 if chosenMetaFamily > 0 and g.family ~= chosenMetaFamily then
                     -- Skip other meta gems
-                elseif not mustBeNormal and not activeUniques[g.id] then
-                    activeUniques[g.id] = true
+                elseif not mustBeNormal and not (activeUniques[g.id] and activeUniques[g.id] > 0) then
+                    activeUniques[g.id] = (activeUniques[g.id] or 0) + 1
                     hasMetaGemState.hasMeta = true
                     return g
                 end
             else
                 if g.isUnique then
-                    if not activeUniques[g.id] then
-                        activeUniques[g.id] = true
+                    if not (activeUniques[g.id] and activeUniques[g.id] > 0) then
+                        activeUniques[g.id] = (activeUniques[g.id] or 0) + 1
                         return g
                     end
                 else
@@ -304,8 +306,8 @@ function UI:DrawGems()
             local isGemMeta = gemData and gemData.isMeta
             if not isGemMeta then
                 if g.isUnique then
-                    if not activeUniques[g.id] then
-                        activeUniques[g.id] = true
+                    if not (activeUniques[g.id] and activeUniques[g.id] > 0) then
+                        activeUniques[g.id] = (activeUniques[g.id] or 0) + 1
                         return g
                     end
                 else
@@ -320,8 +322,8 @@ function UI:DrawGems()
     local GetItemInfo = C_Item and C_Item.GetItemInfo or _G.GetItemInfo
     
     local function RenderSocketList(parentChild, itemsList)
-        local activeUniques, hasMeta = ScanUniques(itemsList)
-        local hasMetaGemState = { hasMeta = hasMeta }
+        local activeUniques, metaCount = ScanUniques(itemsList)
+        local hasMetaGemState = { hasMeta = (metaCount > 0) }
         local offset = 0
         if #itemsList == 0 then
             local noSockets = parentChild:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -370,7 +372,28 @@ function UI:DrawGems()
                     }
                 end
                 
+                -- Temporarily decrement current gem's equipped status to allow keeping it
+                if currentGemId and currentGemId > 0 then
+                    if activeUniques[currentGemId] and activeUniques[currentGemId] > 0 then
+                        activeUniques[currentGemId] = activeUniques[currentGemId] - 1
+                    end
+                    local _, _, gemData = ItemEvaluator:FindGemInDB(currentGemId)
+                    if gemData and gemData.isMeta then
+                        metaCount = metaCount - 1
+                        hasMetaGemState.hasMeta = (metaCount > 0)
+                    end
+                end
+                
                 local recGem = GetRecommendedGemForSocket(currentGemId, activeUniques, hasMetaGemState)
+                
+                -- Update meta count after recommendation is made
+                if recGem then
+                    local _, _, gemData = ItemEvaluator:FindGemInDB(recGem.id)
+                    if gemData and gemData.isMeta then
+                        metaCount = metaCount + 1
+                        hasMetaGemState.hasMeta = (metaCount > 0)
+                    end
+                end
                 
                 local lblCurrent = socketRow:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
                 lblCurrent:SetPoint("LEFT", socketRow, "LEFT", 70, 0)

@@ -110,37 +110,16 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                 local currentPct = 0
                 local isPercent = false
                 
-                local eqStats = ItemEvaluator:GetEquippedStats()
-                if rule.stat == "STAT_HASTE" then
-                    currentVal = eqStats.STAT_HASTE or 0
-                    local rating_per_percent = ItemEvaluator:GetRatingPerPercent(ItemEvaluator.CR_HASTE)
-                    currentPct = rating_per_percent > 0 and (currentVal / rating_per_percent) or 0
+                local currentStats = ItemEvaluator:GetPlayerCurrentStats()
+                local basePct = ItemEvaluator:GetBaseStatPercentages()
+                currentVal = currentStats[rule.stat] or 0
+                if rule.stat == "STAT_HASTE" or rule.stat == "STAT_CRIT" or rule.stat == "STAT_MASTERY" or rule.stat == "STAT_VERSATILITY" then
+                    local ratingIndex = ItemEvaluator["CR_" .. rule.stat:sub(6)]
+                    local rating_per_percent = ItemEvaluator:GetRatingPerPercent(ratingIndex)
+                    local bp = basePct[rule.stat] or 0
+                    currentPct = bp + (rating_per_percent > 0 and (currentVal / rating_per_percent) or 0)
                     isPercent = true
-                elseif rule.stat == "STAT_CRIT" then
-                    currentVal = eqStats.STAT_CRIT or 0
-                    local rating_per_percent = ItemEvaluator:GetRatingPerPercent(ItemEvaluator.CR_CRIT)
-                    currentPct = rating_per_percent > 0 and (currentVal / rating_per_percent) or 0
-                    isPercent = true
-                elseif rule.stat == "STAT_MASTERY" then
-                    currentVal = eqStats.STAT_MASTERY or 0
-                    local rating_per_percent = ItemEvaluator:GetRatingPerPercent(ItemEvaluator.CR_MASTERY)
-                    currentPct = rating_per_percent > 0 and (currentVal / rating_per_percent) or 0
-                    isPercent = true
-                elseif rule.stat == "STAT_VERSATILITY" then
-                    currentVal = eqStats.STAT_VERSATILITY or 0
-                    local rating_per_percent = ItemEvaluator:GetRatingPerPercent(ItemEvaluator.CR_VERSATILITY)
-                    currentPct = rating_per_percent > 0 and (currentVal / rating_per_percent) or 0
-                    isPercent = true
-                elseif rule.stat == "STAT_LEECH" then
-                    currentVal = eqStats.STAT_LEECH or 0
-                    currentPct = currentVal / 1100
-                    isPercent = true
-                elseif rule.stat == "STAT_AVOIDANCE" then
-                    currentVal = eqStats.STAT_AVOIDANCE or 0
-                    currentPct = currentVal / 1100
-                    isPercent = true
-                elseif rule.stat == "STAT_SPEED" then
-                    currentVal = eqStats.STAT_SPEED or 0
+                elseif rule.stat == "STAT_LEECH" or rule.stat == "STAT_AVOIDANCE" or rule.stat == "STAT_SPEED" then
                     currentPct = currentVal / 1100
                     isPercent = true
                 end

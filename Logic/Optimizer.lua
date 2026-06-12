@@ -15,24 +15,6 @@ function ItemEvaluator:Optimize()
         end
     end
     
-    -- Extract current character sheet stats
-    local _, avgIlvl = GetAverageItemLevel()
-    
-    local currentStats = {
-        STAT_CRIT = GetCombatRating(self.CR_CRIT) or 0,
-        STAT_HASTE = GetCombatRating(self.CR_HASTE) or 0,
-        STAT_MASTERY = GetCombatRating(self.CR_MASTERY) or 0,
-        STAT_VERSATILITY = GetCombatRating(self.CR_VERSATILITY) or 0,
-        STAT_LEECH = GetCombatRating(self.CR_LIFESTEAL) or 0,
-        STAT_AVOIDANCE = GetCombatRating(self.CR_AVOIDANCE) or 0,
-        STAT_SPEED = GetCombatRating(self.CR_SPEED) or 0,
-        STAT_INTELLECT = select(2, UnitStat("player", 4)) or 0,
-        STAT_AGILITY = select(2, UnitStat("player", 2)) or 0,
-        STAT_STRENGTH = select(2, UnitStat("player", 1)) or 0,
-        STAT_STAMINA = select(2, UnitStat("player", 3)) or 0,
-        STAT_ARMOR = select(2, UnitArmor("player")) or 0,
-        STAT_ILVL = avgIlvl or 0,
-    }
     
     local ratingPerPercent = {
         STAT_CRIT = self:GetRatingPerPercent(self.CR_CRIT),
@@ -155,10 +137,8 @@ function ItemEvaluator:Optimize()
         end
     end
     
-    local eqStats = self:GetEquippedStats()
-    for k, v in pairs(eqStats) do
-        currentStats[k] = v
-    end
+    self.eqStats = self:GetEquippedStats()
+    local currentStats = self:GetPlayerCurrentStats()
     
     -- Filter optimizable slots
     local optimizableSlots = {}

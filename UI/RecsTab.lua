@@ -168,42 +168,20 @@ function UI:DrawRecs()
     
     local function RenderPanelStats(panel, statsList, startY, rowHeight)
         local offsetY = startY
-        local eqStats = ItemEvaluator:GetEquippedStats()
+        local currentStats = ItemEvaluator:GetPlayerCurrentStats()
+        local basePct = ItemEvaluator:GetBaseStatPercentages()
         for _, statInfo in ipairs(statsList) do
             local key = statInfo.key
-            local currentVal = 0
+            local currentVal = currentStats[key] or 0
             local currentPct = 0
             
-            if key == "STAT_ILVL" then
-                local _, avgIlvl = GetAverageItemLevel()
-                currentVal = avgIlvl or 0
-            elseif key == "STAT_ARMOR" then
-                currentVal = select(2, UnitArmor("player")) or 0
-            elseif key == "STAT_STRENGTH" then
-                currentVal = select(2, UnitStat("player", 1)) or 0
-            elseif key == "STAT_AGILITY" then
-                currentVal = select(2, UnitStat("player", 2)) or 0
-            elseif key == "STAT_INTELLECT" then
-                currentVal = select(2, UnitStat("player", 4)) or 0
-            elseif key == "STAT_STAMINA" then
-                currentVal = select(2, UnitStat("player", 3)) or 0
-            elseif key == "STAT_HASTE" then
-                currentVal = eqStats.STAT_HASTE or 0
-                local rating_per_percent = ItemEvaluator:GetRatingPerPercent(ItemEvaluator.CR_HASTE)
-                currentPct = rating_per_percent > 0 and (currentVal / rating_per_percent) or 0
-            elseif key == "STAT_CRIT" then
-                currentVal = eqStats.STAT_CRIT or 0
-                local rating_per_percent = ItemEvaluator:GetRatingPerPercent(ItemEvaluator.CR_CRIT)
-                currentPct = rating_per_percent > 0 and (currentVal / rating_per_percent) or 0
-            elseif key == "STAT_MASTERY" then
-                currentVal = eqStats.STAT_MASTERY or 0
-                local rating_per_percent = ItemEvaluator:GetRatingPerPercent(ItemEvaluator.CR_MASTERY)
-                currentPct = rating_per_percent > 0 and (currentVal / rating_per_percent) or 0
-            elseif key == "STAT_VERSATILITY" then
-                currentVal = eqStats.STAT_VERSATILITY or 0
-                local rating_per_percent = ItemEvaluator:GetRatingPerPercent(ItemEvaluator.CR_VERSATILITY)
-                currentPct = rating_per_percent > 0 and (currentVal / rating_per_percent) or 0
+            local rating_per_percent = 0
+            if statInfo.isPercent then
+                rating_per_percent = ItemEvaluator:GetRatingPerPercent(statInfo.ratingIndex or 0)
+                local bp = basePct[key] or 0
+                currentPct = bp + (rating_per_percent > 0 and (currentVal / rating_per_percent) or 0)
             end
+
             
             local predictedVal = predictedStats[key] or currentVal
             local diffRating = predictedVal - currentVal
@@ -213,9 +191,8 @@ function UI:DrawRecs()
             
             if statInfo.isPercent then
                 cleanLabel = statInfo.label:gsub(" ?%(%%%)", "")
-                -- Calculate predicted percentage
-                local rating_per_percent = ItemEvaluator:GetRatingPerPercent(statInfo.ratingIndex)
-                local predictedPct = currentPct + (rating_per_percent > 0 and ((predictedVal - currentVal) / rating_per_percent) or 0)
+                local bp = basePct[key] or 0
+                local predictedPct = bp + (rating_per_percent > 0 and (predictedVal / rating_per_percent) or 0)
                 local diffPct = predictedPct - currentPct
                 
                 valStr = string.format("%.2f%% (%d)", predictedPct, predictedVal)

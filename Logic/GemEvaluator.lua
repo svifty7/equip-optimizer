@@ -82,6 +82,7 @@ local STAT_PATTERNS = {
     { pat = "leech", key = "STAT_LEECH" }, { pat = "самоисц", key = "STAT_LEECH" },
     { pat = "avoid", key = "STAT_AVOIDANCE" }, { pat = "избеж", key = "STAT_AVOIDANCE" }
 }
+ItemEvaluator.STAT_PATTERNS = STAT_PATTERNS
 
 -- Get stats of a gem by ID mapped to internal keys (checks GemDB first, falls back to tooltip parsing)
 function ItemEvaluator:GetGemStats(gemId)

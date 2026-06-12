@@ -70,6 +70,7 @@ local mappingDefinition = {
     ITEM_MOD_STAMINA = "STAT_STAMINA",
     ITEM_MOD_ARMOR_SHORT = "STAT_ARMOR",
     ITEM_MOD_ARMOR = "STAT_ARMOR",
+    RESISTANCE0_NAME = "STAT_ARMOR",
     
     -- Tertiary stats
     ITEM_MOD_CR_LIFESTEAL_SHORT = "STAT_LEECH",
@@ -213,3 +214,37 @@ function ItemEvaluator:ConvertPercentToRating(statKey, targetPercent)
     
     return totalRating
 end
+
+-- Get base percentages (total sheet percentage minus rating percentage)
+function ItemEvaluator:GetBaseStatPercentages()
+    local basePct = {
+        STAT_HASTE = 0,
+        STAT_CRIT = 0,
+        STAT_MASTERY = 0,
+        STAT_VERSATILITY = 0,
+    }
+    
+    if GetHaste then
+        local rating = GetCombatRating(self.CR_HASTE) or 0
+        local rating_per_percent = self:GetRatingPerPercent(self.CR_HASTE)
+        local rating_pct = rating_per_percent > 0 and (rating / rating_per_percent) or 0
+        basePct.STAT_HASTE = GetHaste() - rating_pct
+    end
+    
+    if GetCritChance then
+        local rating = GetCombatRating(self.CR_CRIT) or 0
+        local rating_per_percent = self:GetRatingPerPercent(self.CR_CRIT)
+        local rating_pct = rating_per_percent > 0 and (rating / rating_per_percent) or 0
+        basePct.STAT_CRIT = GetCritChance() - rating_pct
+    end
+    
+    if GetMasteryEffect then
+        local rating = GetCombatRating(self.CR_MASTERY) or 0
+        local rating_per_percent = self:GetRatingPerPercent(self.CR_MASTERY)
+        local rating_pct = rating_per_percent > 0 and (rating / rating_per_percent) or 0
+        basePct.STAT_MASTERY = GetMasteryEffect() - rating_pct
+    end
+    
+    return basePct
+end
+

@@ -2,10 +2,35 @@
 local addonName, addonTable = ...
 local ItemEvaluator = addonTable.ItemEvaluator
 
--- Scrap stats and item level of an item
+-- Helper to strip enchants and gems from item link
+function ItemEvaluator:GetCleanItemLink(itemLink)
+    if not itemLink then return nil end
+    local itemString = string.match(itemLink, "item:([%-?%d:]+)")
+    if not itemString then return itemLink end
+    
+    local parts = {}
+    for part in string.gmatch(itemString .. ":", "([^:]*):") do
+        table.insert(parts, part)
+    end
+    
+    if #parts >= 6 then
+        parts[2] = "" -- enchantID
+        parts[3] = "" -- gemID1
+        parts[4] = "" -- gemID2
+        parts[5] = "" -- gemID3
+        parts[6] = "" -- gemID4
+    end
+    
+    local cleanItemString = table.concat(parts, ":")
+    local cleanLink = string.gsub(itemLink, "item:[%-?%d:]+", "item:" .. cleanItemString)
+    return cleanLink
+end
+
+-- Scrap stats and item level of a clean item (excluding socketed gems and enchants)
 function ItemEvaluator:GetItemRatings(itemLink)
+    local cleanLink = self:GetCleanItemLink(itemLink) or itemLink
     local GetItemStats = C_Item and C_Item.GetItemStats or _G.GetItemStats
-    local rawStats = GetItemStats(itemLink)
+    local rawStats = GetItemStats(cleanLink)
     local ratings = {
         STAT_CRIT = 0,
         STAT_HASTE = 0,
@@ -29,8 +54,10 @@ function ItemEvaluator:GetItemRatings(itemLink)
             end
         end
     end
+    
     return ratings
 end
+
 
 -- Find all candidate items in bags for a slot
 function ItemEvaluator:GetBagItemsForSlot(slotId)
@@ -141,7 +168,7 @@ function ItemEvaluator:GetEquippedItemsForSlot(slotId)
     return items
 end
 
--- Get the total secondary and tertiary stats of currently equipped items
+-- Get the total stats of currently equipped items
 function ItemEvaluator:GetEquippedStats()
     local stats = {
         STAT_CRIT = 0,
@@ -151,6 +178,11 @@ function ItemEvaluator:GetEquippedStats()
         STAT_LEECH = 0,
         STAT_AVOIDANCE = 0,
         STAT_SPEED = 0,
+        STAT_INTELLECT = 0,
+        STAT_AGILITY = 0,
+        STAT_STRENGTH = 0,
+        STAT_STAMINA = 0,
+        STAT_ARMOR = 0,
     }
     for _, item in pairs(self.equipped or {}) do
         if item.ratings then
@@ -162,18 +194,90 @@ function ItemEvaluator:GetEquippedStats()
     return stats
 end
 
--- Calculate resulting player stats with a specific combination of items from scratch for secondary/tertiary stats
+-- Get the total stats of enchants and gems currently on the equipped items
+function ItemEvaluator:GetEquippedGemsAndEnchantsStats()
+    local stats = {
+        STAT_CRIT = 0, STAT_HASTE = 0, STAT_MASTERY = 0, STAT_VERSATILITY = 0,
+        STAT_INTELLECT = 0, STAT_AGILITY = 0, STAT_STRENGTH = 0, STAT_STAMINA = 0,
+        STAT_LEECH = 0, STAT_AVOIDANCE = 0, STAT_SPEED = 0, STAT_ARMOR = 0,
+    }
+    if not GetInventoryItemLink then return stats end
+    
+    local GetItemStats = C_Item and C_Item.GetItemStats or _G.GetItemStats
+    if not GetItemStats then return stats end
+    
+    for slotId = 1, 19 do
+        local itemLink = GetInventoryItemLink("player", slotId)
+        if itemLink then
+            local dirty = GetItemStats(itemLink)
+            local cleanLink = self:GetCleanItemLink(itemLink)
+            local clean = cleanLink and GetItemStats(cleanLink)
+            if dirty then
+                for rawKey, dirtyVal in pairs(dirty) do
+                    local mapped = self.StatKeyMapping[rawKey]
+                    if mapped then
+                        local cleanVal = clean and clean[rawKey] or 0
+                        local diff = dirtyVal - cleanVal
+                        if diff > 0 then
+                            stats[mapped] = stats[mapped] + diff
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return stats
+end
+
+-- Get player current stats including gems/enchants but excluding temporary buffs
+function ItemEvaluator:GetPlayerCurrentStats()
+    local eqClean = self:GetEquippedStats()
+    local gemsEnchants = self:GetEquippedGemsAndEnchantsStats()
+    
+    local intellect = 0
+    local agility = 0
+    local strength = 0
+    local stamina = 0
+    local armor = 0
+    
+    if UnitStat then
+        strength = select(2, UnitStat("player", 1)) or 0
+        agility = select(2, UnitStat("player", 2)) or 0
+        stamina = select(2, UnitStat("player", 3)) or 0
+        intellect = select(2, UnitStat("player", 4)) or 0
+    end
+    
+    if UnitArmor then
+        armor = select(2, UnitArmor("player")) or 0
+    end
+    
+    local avgIlvl = 0
+    if GetAverageItemLevel then
+        local _, val = GetAverageItemLevel()
+        avgIlvl = val or 0
+    end
+    
+    return {
+        STAT_CRIT = (eqClean.STAT_CRIT or 0) + (gemsEnchants.STAT_CRIT or 0),
+        STAT_HASTE = (eqClean.STAT_HASTE or 0) + (gemsEnchants.STAT_HASTE or 0),
+        STAT_MASTERY = (eqClean.STAT_MASTERY or 0) + (gemsEnchants.STAT_MASTERY or 0),
+        STAT_VERSATILITY = (eqClean.STAT_VERSATILITY or 0) + (gemsEnchants.STAT_VERSATILITY or 0),
+        STAT_LEECH = (eqClean.STAT_LEECH or 0) + (gemsEnchants.STAT_LEECH or 0),
+        STAT_AVOIDANCE = (eqClean.STAT_AVOIDANCE or 0) + (gemsEnchants.STAT_AVOIDANCE or 0),
+        STAT_SPEED = (eqClean.STAT_SPEED or 0) + (gemsEnchants.STAT_SPEED or 0),
+        STAT_INTELLECT = intellect,
+        STAT_AGILITY = agility,
+        STAT_STRENGTH = strength,
+        STAT_STAMINA = stamina,
+        STAT_ARMOR = armor,
+        STAT_ILVL = avgIlvl,
+    }
+end
+
+
+-- Calculate resulting player stats with a specific combination of items from scratch
 function ItemEvaluator:GetResultingStats(combination, currentStats, ratingPerPercent)
     local netStats = {
-        STAT_INTELLECT = 0,
-        STAT_AGILITY = 0,
-        STAT_STRENGTH = 0,
-        STAT_STAMINA = 0,
-        STAT_ARMOR = 0,
-        STAT_ILVL = 0,
-    }
-    
-    local directStats = {
         STAT_CRIT = 0,
         STAT_HASTE = 0,
         STAT_MASTERY = 0,
@@ -181,6 +285,11 @@ function ItemEvaluator:GetResultingStats(combination, currentStats, ratingPerPer
         STAT_LEECH = 0,
         STAT_AVOIDANCE = 0,
         STAT_SPEED = 0,
+        STAT_INTELLECT = 0,
+        STAT_AGILITY = 0,
+        STAT_STRENGTH = 0,
+        STAT_STAMINA = 0,
+        STAT_ARMOR = 0,
     }
     
     -- Check if combination has a 2H weapon in MainHand
@@ -201,34 +310,32 @@ function ItemEvaluator:GetResultingStats(combination, currentStats, ratingPerPer
         local eqRatings = equippedInfo and equippedInfo.ratings or {}
         local newRatings = actualItem.ratings or {}
         
-        -- Delta for primary stats and ilvl
+        -- Sum up differences for all stats
         for k in pairs(netStats) do
             local eqVal = eqRatings[k] or 0
             local newVal = newRatings[k] or 0
             netStats[k] = netStats[k] + (newVal - eqVal)
         end
-        
-        -- Direct sum for secondary and tertiary stats
-        for k in pairs(directStats) do
-            local newVal = newRatings[k] or 0
-            directStats[k] = directStats[k] + newVal
-        end
     end
     
     local resulting = {}
-    
-    -- Direct stats from items
-    for k, v in pairs(directStats) do
-        resulting[k] = v
+    for k, v in pairs(netStats) do
+        resulting[k] = (currentStats[k] or 0) + v
     end
     
-    -- Delta calculation for primary stats, armor, and item level
-    resulting.STAT_INTELLECT = currentStats.STAT_INTELLECT + netStats.STAT_INTELLECT
-    resulting.STAT_AGILITY = currentStats.STAT_AGILITY + netStats.STAT_AGILITY
-    resulting.STAT_STRENGTH = currentStats.STAT_STRENGTH + netStats.STAT_STRENGTH
-    resulting.STAT_STAMINA = currentStats.STAT_STAMINA + netStats.STAT_STAMINA
-    resulting.STAT_ARMOR = currentStats.STAT_ARMOR + netStats.STAT_ARMOR
-    resulting.STAT_ILVL = currentStats.STAT_ILVL + (netStats.STAT_ILVL / 16)
+    -- Item level delta calculation
+    local netIlvlDiff = 0
+    for slotId, itemInfo in pairs(combination) do
+        local actualItem = itemInfo
+        if slotId == 17 and has2H then
+            actualItem = { ratings = { STAT_ILVL = mainHandItem.ilvl }, ilvl = mainHandItem.ilvl }
+        end
+        local equippedInfo = self.equipped[slotId]
+        local eqIlvl = equippedInfo and equippedInfo.ratings and equippedInfo.ratings.STAT_ILVL or 0
+        local newIlvl = actualItem.ratings and actualItem.ratings.STAT_ILVL or 0
+        netIlvlDiff = netIlvlDiff + (newIlvl - eqIlvl)
+    end
+    resulting.STAT_ILVL = currentStats.STAT_ILVL + (netIlvlDiff / 16)
     
     return resulting
 end
