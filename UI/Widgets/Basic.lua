@@ -1,5 +1,5 @@
 -- Basic.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local UI = addonTable.UI or {}
 addonTable.UI = UI
 
@@ -64,10 +64,10 @@ function UI:CreateEditBox(parent, width, height, labelText)
         self:ClearFocus()
     end)
     
-    eb:SetScript("OnEditFocusGained", function(self)
+    eb:SetScript("OnEditFocusGained", function(_)
         ebFrame:SetBackdropBorderColor(0.8, 0.7, 0.2, 1)
     end)
-    eb:SetScript("OnEditFocusLost", function(self)
+    eb:SetScript("OnEditFocusLost", function(_)
         ebFrame:SetBackdropBorderColor(0.4, 0.4, 0.4, 1)
     end)
     

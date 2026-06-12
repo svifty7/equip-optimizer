@@ -10,7 +10,6 @@ local CR_MASTERY = 26
 local CR_VERSATILITY = 29
 local CR_SPEED = 13
 local CR_AVOIDANCE = 14
-local CR_LIFESTEAL = 17
 
 -- Base rating costs for tertiary stats (strictly linear, no DR)
 local TERTIARY_BASE_COSTS = {
@@ -185,11 +184,13 @@ function ItemEvaluator:GetResultingStats(combination, currentStats, ratingPerPer
         
         local equippedInfo = equipped[slotId]
         local eqRatings = equippedInfo and equippedInfo.ratings or {}
+        local eqGemsEnchants = equippedInfo and equippedInfo.gemsAndEnchants or {}
         local newRatings = actualItem.ratings or {}
+        local newGemsEnchants = actualItem.gemsAndEnchants or {}
         
         for k, v in pairs(netStats) do
-            local eqVal = eqRatings[k] or 0
-            local newVal = newRatings[k] or 0
+            local eqVal = (eqRatings[k] or 0) + (eqGemsEnchants[k] or 0)
+            local newVal = (newRatings[k] or 0) + (newGemsEnchants[k] or 0)
             netStats[k] = netStats[k] + (newVal - eqVal)
         end
     end
@@ -247,8 +248,8 @@ local function RunTests()
     
     -- Mock equipped items (slots 11, 12: Rings)
     local equipped = {
-        [11] = { link = "Equipped Ring 1", ratings = { STAT_HASTE = 300, STAT_CRIT = 100 }, ilvl = 600 },
-        [12] = { link = "Equipped Ring 2", ratings = { STAT_MASTERY = 400, STAT_VERSATILITY = 100 }, ilvl = 600 }
+        [11] = { link = "Equipped Ring 1", ratings = { STAT_HASTE = 300, STAT_CRIT = 100 }, gemsAndEnchants = { STAT_HASTE = 50 }, ilvl = 600 },
+        [12] = { link = "Equipped Ring 2", ratings = { STAT_MASTERY = 400, STAT_VERSATILITY = 100 }, gemsAndEnchants = {}, ilvl = 600 }
     }
     
     -- Mock candidates for Ring slots
@@ -256,13 +257,13 @@ local function RunTests()
         [11] = {
             equipped[11], -- Equipped Ring 1
             -- Bag Ring A provides Haste = 4300 rating (which is > 3960 net needed to reach 33000)
-            { link = "Bag Ring A", ratings = { STAT_HASTE = 4300, STAT_CRIT = 50 }, ilvl = 610, bag = 0, slot = 1 },
-            { link = "Bag Ring B", ratings = { STAT_MASTERY = 600, STAT_CRIT = 200 }, ilvl = 615, bag = 0, slot = 2 }
+            { link = "Bag Ring A", ratings = { STAT_HASTE = 4300, STAT_CRIT = 50 }, gemsAndEnchants = { STAT_HASTE = 100 }, ilvl = 610, bag = 0, slot = 1 },
+            { link = "Bag Ring B", ratings = { STAT_MASTERY = 600, STAT_CRIT = 200 }, gemsAndEnchants = {}, ilvl = 615, bag = 0, slot = 2 }
         },
         [12] = {
             equipped[12], -- Equipped Ring 2
             -- Bag Ring C provides Mastery = 3200 rating (which is > 2800 net needed to reach 28000)
-            { link = "Bag Ring C", ratings = { STAT_HASTE = 200, STAT_MASTERY = 3200 }, ilvl = 610, bag = 0, slot = 3 }
+            { link = "Bag Ring C", ratings = { STAT_HASTE = 200, STAT_MASTERY = 3200 }, gemsAndEnchants = {}, ilvl = 610, bag = 0, slot = 3 }
         }
     }
     

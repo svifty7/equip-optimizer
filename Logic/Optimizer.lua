@@ -1,7 +1,8 @@
 -- Optimizer.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local Core = addonTable.Core
 local ItemEvaluator = addonTable.ItemEvaluator
+local L = addonTable.L
 
 -- Perform search for best items combo
 function ItemEvaluator:Optimize()
@@ -15,13 +16,29 @@ function ItemEvaluator:Optimize()
         end
     end
     
-    
     local ratingPerPercent = {
         STAT_CRIT = self:GetRatingPerPercent(self.CR_CRIT),
         STAT_HASTE = self:GetRatingPerPercent(self.CR_HASTE),
         STAT_MASTERY = self:GetRatingPerPercent(self.CR_MASTERY),
         STAT_VERSATILITY = self:GetRatingPerPercent(self.CR_VERSATILITY),
     }
+    
+    local bestGemStats = self:GetBestGemStats(activeRules)
+    
+    local function populatePotentialStats(item)
+        if not item.link then 
+            item.potentialGemsStats = {}
+            return 
+        end
+        local socketsInfo = self:ParseItemSockets(item.link)
+        item.totalSockets = socketsInfo and socketsInfo.totalSockets or 0
+        local emptySockets = socketsInfo and socketsInfo.emptySockets or 0
+        item.potentialGemsStats = {}
+        for k, v in pairs(bestGemStats) do
+            item.potentialGemsStats[k] = v * emptySockets
+        end
+    end
+    
     
     -- Scan currently equipped items
     self.equipped = {}
@@ -35,23 +52,29 @@ function ItemEvaluator:Optimize()
         local eqItem = nil
         if itemLink then
             local ratings = self:GetItemRatings(itemLink)
+            local gemsAndEnchants = self:GetItemGemsAndEnchantsStats(itemLink)
             local ilvl = C_Item.GetDetailedItemLevelInfo(itemLink) or 0
             local GetItemInfo = C_Item and C_Item.GetItemInfo or _G.GetItemInfo
             local itemID = C_Item.GetItemInfoInstant(itemLink)
-            local _, _, _, _, _, _, _, _, equipType, _, _, _, _, _, _, setID = GetItemInfo(itemID or itemLink)
+            local _, _, _, _, _, _, _, _, equipType, _, _, _, _, _, _, setID = GetItemInfo(itemLink)
+            if not equipType and itemID then
+                C_Item.RequestLoadItemDataByID(itemID)
+            end
             
             eqItem = {
                 link = itemLink,
                 ratings = ratings,
+                gemsAndEnchants = gemsAndEnchants,
                 ilvl = ilvl,
                 equipType = equipType,
                 isEquipped = true,
                 slotId = slotId,
                 setID = setID
             }
+            populatePotentialStats(eqItem)
             self.equipped[slotId] = eqItem
         else
-            eqItem = { ratings = {}, ilvl = 0, link = nil, isEquipped = true, slotId = slotId }
+            eqItem = { ratings = {}, gemsAndEnchants = {}, ilvl = 0, link = nil, isEquipped = true, slotId = slotId, potentialGemsStats = {} }
             self.equipped[slotId] = eqItem
         end
         
@@ -70,6 +93,9 @@ function ItemEvaluator:Optimize()
         local lockVal = profile.lockedSlots[slotId]
         if not lockVal then
             local bagItems = self:GetBagItemsForSlot(slotId)
+            for _, item in ipairs(bagItems) do
+                populatePotentialStats(item)
+            end
             
             table.sort(bagItems, function(a, b)
                 if a.ilvl ~= b.ilvl then
@@ -110,6 +136,9 @@ function ItemEvaluator:Optimize()
             else
                 -- It is a specific item link chosen by user
                 local bagItems = self:GetBagItemsForSlot(slotId)
+                for _, item in ipairs(bagItems) do
+                    populatePotentialStats(item)
+                end
                 local found = false
                 for _, item in ipairs(bagItems) do
                     if item.link == lockVal then
@@ -122,6 +151,9 @@ function ItemEvaluator:Optimize()
                     -- Check if it's currently equipped in any slot that fits
                     local equippedItems = self:GetEquippedItemsForSlot(slotId)
                     for _, item in ipairs(equippedItems) do
+                        populatePotentialStats(item)
+                    end
+                    for _, item in ipairs(equippedItems) do
                         if item.link == lockVal then
                             table.insert(candidates[slotId], item)
                             found = true
@@ -132,6 +164,45 @@ function ItemEvaluator:Optimize()
                 if not found then
                     -- Fallback if selected item is no longer in bag/equipped
                     table.insert(candidates[slotId], eqItem)
+                end
+            end
+        end
+    end
+    local adjustedRequiredSets = {}
+    local hasInteractions = false
+    for _, rule in ipairs(activeRules) do
+        if rule.op == ">=" then
+            hasInteractions = true
+            break
+        end
+    end
+    if profile.requiredSets then
+        for _, count in pairs(profile.requiredSets) do
+            if count > 0 then
+                hasInteractions = true
+                break
+            end
+        end
+    end
+    
+    if not hasInteractions then
+        for slotId, slotCandidates in pairs(candidates) do
+            if slotId ~= 11 and slotId ~= 12 and slotId ~= 13 and slotId ~= 14 and slotId ~= 16 and slotId ~= 17 then
+                if #slotCandidates > 1 then
+                    local bestCand = slotCandidates[1]
+                    local bestScore = -1
+                    for _, cand in ipairs(slotCandidates) do
+                        local candStats = {}
+                        for k, v in pairs(cand.ratings or {}) do candStats[k] = v end
+                        for k, v in pairs(cand.potentialGemsStats or {}) do candStats[k] = (candStats[k] or 0) + v end
+                        candStats["STAT_ILVL"] = cand.ilvl or 0
+                        local score = self:CalculateScore(candStats, activeRules)
+                        if score > bestScore then
+                            bestScore = score
+                            bestCand = cand
+                        end
+                    end
+                    candidates[slotId] = { bestCand }
                 end
             end
         end
@@ -158,9 +229,9 @@ function ItemEvaluator:Optimize()
         totalCombinations = totalCombinations * #candidates[slotId]
     end
     
-    if totalCombinations > 5000 then
-        -- Gradual pruning to ensure we don't exceed 5000 combinations
-        while totalCombinations > 5000 do
+    if totalCombinations > 20000 then
+        -- Gradual pruning to ensure we don't exceed 20000 combinations
+        while totalCombinations > 20000 do
             local maxSlotId = nil
             local maxCount = 2 -- Don't prune below 2 candidates (1 equipped + 1 bag item)
             for _, slotId in ipairs(optimizableSlots) do
@@ -179,13 +250,84 @@ function ItemEvaluator:Optimize()
                 totalCombinations = totalCombinations * #candidates[slotId]
             end
         end
+    else
     end
     
+    -- Validate that required sets are actually possible with finalized candidates
+    local maxPossibleSetCounts = {}
+    for slotId, slotCandidates in pairs(candidates) do
+        local hasSetID = {}
+        for _, cand in ipairs(slotCandidates) do
+            if cand.link then
+                local setID = tonumber(cand.setID) or cand.setID
+                if setID and setID > 0 then
+                    hasSetID[setID] = true
+                end
+            end
+        end
+        for setID in pairs(hasSetID) do
+            maxPossibleSetCounts[setID] = (maxPossibleSetCounts[setID] or 0) + 1
+        end
+    end
+
+    if profile.requiredSets then
+        for reqSetID, reqCount in pairs(profile.requiredSets) do
+            local numID = tonumber(reqSetID) or reqSetID
+            if reqCount and reqCount > 0 then
+                local maxPossible = maxPossibleSetCounts[numID] or 0
+                if maxPossible < reqCount then
+                    local setName = "Set " .. tostring(numID)
+                    local GetItemSetInfo = C_Item and C_Item.GetItemSetInfo or _G.GetItemSetInfo
+                    if GetItemSetInfo then
+                        local sName = GetItemSetInfo(numID)
+                        if sName then setName = sName end
+                    end
+                    local msg = string.format(L.IMPOSSIBLE_SET_WARN or "Warning: Set requirements for '%s' lowered from %d to %d pieces (not enough matching items in bags/equipped).", setName, reqCount, maxPossible)
+                    Core:Print("|cffff3030" .. msg .. "|r")
+                    if maxPossible >= 2 then
+                        adjustedRequiredSets[numID] = maxPossible
+                    end
+                else
+                    adjustedRequiredSets[numID] = reqCount
+                end
+            end
+        end
+    end
     -- Combinations search
     local bestCombination = nil
+    local seenPairs = {}
+    local totalEvaluated = 0
+    local satisfiedSetsCount = 0
     
     local function GenerateCombinations(optIndex, usedBagItems)
         if optIndex > #optimizableSlots then
+            totalEvaluated = totalEvaluated + 1
+            
+            -- Deduplicate swapped combinations of rings and trinkets correctly
+            local keys = {}
+            for _, slotInfo in ipairs(Core.Slots) do
+                local slotId = slotInfo.id
+                if slotId ~= 11 and slotId ~= 12 and slotId ~= 13 and slotId ~= 14 then
+                    table.insert(keys, currentComb[slotId] and currentComb[slotId].link or "none")
+                end
+            end
+            
+            local r1 = currentComb[11] and currentComb[11].link or "none"
+            local r2 = currentComb[12] and currentComb[12].link or "none"
+            if r1 > r2 then r1, r2 = r2, r1 end
+            table.insert(keys, r1)
+            table.insert(keys, r2)
+            
+            local t1 = currentComb[13] and currentComb[13].link or "none"
+            local t2 = currentComb[14] and currentComb[14].link or "none"
+            if t1 > t2 then t1, t2 = t2, t1 end
+            table.insert(keys, t1)
+            table.insert(keys, t2)
+            
+            local pairKey = table.concat(keys, "|")
+            if seenPairs[pairKey] then return end
+            seenPairs[pairKey] = true
+            
             -- Validate: 2H weapon vs OffHand
             local mainHand = currentComb[16]
             local offHand = currentComb[17]
@@ -206,7 +348,7 @@ function ItemEvaluator:Optimize()
                 end
                 
                 if actualItem and actualItem.link then
-                    local setID = actualItem.setID
+                    local setID = tonumber(actualItem.setID) or actualItem.setID
                     if setID and setID > 0 then
                         setCounts[setID] = (setCounts[setID] or 0) + 1
                     end
@@ -214,14 +356,12 @@ function ItemEvaluator:Optimize()
             end
             
             local satisfiesSets = true
-            if profile.requiredSets then
-                for reqSetID, reqCount in pairs(profile.requiredSets) do
-                    if reqCount and reqCount > 0 then
-                        local currentCount = setCounts[reqSetID] or 0
-                        if currentCount < reqCount then
-                            satisfiesSets = false
-                            break
-                        end
+            for reqSetID, reqCount in pairs(adjustedRequiredSets) do
+                if reqCount and reqCount > 0 then
+                    local currentCount = setCounts[reqSetID] or 0
+                    if currentCount < reqCount then
+                        satisfiesSets = false
+                        break
                     end
                 end
             end
@@ -229,6 +369,7 @@ function ItemEvaluator:Optimize()
             if not satisfiesSets then
                 return
             end
+            satisfiedSetsCount = satisfiedSetsCount + 1
             
             -- Compute stats
             local stats = self:GetResultingStats(currentComb, currentStats, ratingPerPercent)

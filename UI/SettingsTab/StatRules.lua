@@ -1,5 +1,5 @@
 -- StatRules.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local L = addonTable.L
 local Core = addonTable.Core
 local ItemEvaluator = addonTable.ItemEvaluator

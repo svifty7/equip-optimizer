@@ -1,11 +1,11 @@
 -- SetRequirements.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local L = addonTable.L
 local Core = addonTable.Core
 local ItemEvaluator = addonTable.ItemEvaluator
 local UI = addonTable.UI
 
-function UI:DrawSetRequirements(settingsContainer, leftColumn, rightColumn)
+function UI:DrawSetRequirements(settingsContainer, leftColumn)
     local bottomColumn = self:CreateBackdropFrame(settingsContainer, L.SET_REQUIREMENTS or "Set Requirements")
     bottomColumn:SetSize(395, 140)
     bottomColumn:SetPoint("TOPLEFT", leftColumn, "BOTTOMLEFT", 0, -15)
@@ -57,7 +57,8 @@ function UI:DrawSetRequirements(settingsContainer, leftColumn, rightColumn)
                 local list = {
                     [0] = L.SET_NONE or "None"
                 }
-                local maxVal = math.max(set.maxItems or 5, currentVal)
+                local ownedCount = ownedCounts[setID] or 0
+                local maxVal = math.max(ownedCount, currentVal)
                 for i = 2, maxVal do
                     list[i] = string.format("%d %s", i, L.SET_PIECES or "pieces")
                 end

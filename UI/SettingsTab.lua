@@ -1,5 +1,5 @@
 -- SettingsTab.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local UI = addonTable.UI
 
 function UI:DrawSettings()
@@ -10,5 +10,5 @@ function UI:DrawSettings()
     local profilePanel = self:DrawProfilePanel(settingsContainer)
     local leftColumn = self:DrawReservedSlots(settingsContainer, profilePanel)
     local rightColumn = self:DrawStatRules(settingsContainer, profilePanel)
-    self:DrawSetRequirements(settingsContainer, leftColumn, rightColumn)
+    self:DrawSetRequirements(settingsContainer, leftColumn)
 end

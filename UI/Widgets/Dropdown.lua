@@ -1,5 +1,5 @@
 -- Dropdown.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local Core = addonTable.Core
 local UI = addonTable.UI or {}
 addonTable.UI = UI

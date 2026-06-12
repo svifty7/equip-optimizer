@@ -1,5 +1,5 @@
 -- GemEvaluator.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local Core = addonTable.Core
 local ItemEvaluator = addonTable.ItemEvaluator
 
@@ -126,21 +126,23 @@ function ItemEvaluator:GetGemStats(gemId)
     return ratings
 end
 
-local SPEC_PRIMARY_STATS = { [1] = "STAT_STRENGTH", [2] = "STAT_AGILITY", [4] = "STAT_INTELLECT" }
-local CLASS_PRIMARY_STATS = {
-    WARRIOR = "STAT_STRENGTH", PALADIN = "STAT_STRENGTH", DEATHKNIGHT = "STAT_STRENGTH",
-    ROGUE = "STAT_AGILITY", HUNTER = "STAT_AGILITY", DEMONHUNTER = "STAT_AGILITY", MONK = "STAT_AGILITY", DRUID = "STAT_AGILITY"
-}
 
--- Determine active primary stat of current character
 function ItemEvaluator:GetActivePrimaryStat()
-    local spec = GetSpecialization()
-    if spec and spec > 0 then
-        local _, _, _, _, _, primaryStat = GetSpecializationInfo(spec)
-        return SPEC_PRIMARY_STATS[primaryStat] or "STAT_INTELLECT"
+    local _, str = UnitStat("player", 1)
+    local _, agi = UnitStat("player", 2)
+    local _, int = UnitStat("player", 4)
+    
+    str = str or 0
+    agi = agi or 0
+    int = int or 0
+    
+    if str >= agi and str >= int then
+        return "STAT_STRENGTH"
+    elseif agi >= str and agi >= int then
+        return "STAT_AGILITY"
+    else
+        return "STAT_INTELLECT"
     end
-    local _, class = UnitClass("player")
-    return CLASS_PRIMARY_STATS[class] or "STAT_INTELLECT"
 end
 
 
@@ -148,18 +150,17 @@ end
 function ItemEvaluator:ScoreGemStats(gemStats, activeRules)
     local score = 0
     
-    -- High multiplier for matching primary stat (Intellect/Strength/Agility)
+    local numActive = #activeRules
+    local primaryWeight = (numActive + 1.5) * 30
     local activePrimary = self:GetActivePrimaryStat()
     local primaryVal = gemStats[activePrimary] or 0
-    score = score + (primaryVal * 10000000)
+    score = score + (primaryVal * primaryWeight)
     
-    -- Priority multiplier for active profile rules
-    local multiplier = 1000000
-    for _, rule in ipairs(activeRules) do
-        if rule.stat ~= "STAT_ILVL" then
+    for idx, rule in ipairs(activeRules) do
+        if rule.enabled and rule.stat ~= "STAT_ILVL" then
             local statVal = gemStats[rule.stat] or 0
-            score = score + (statVal * multiplier)
-            multiplier = multiplier / 10
+            local weight = (numActive - idx + 1)
+            score = score + (statVal * weight)
         end
     end
     
@@ -167,8 +168,7 @@ function ItemEvaluator:ScoreGemStats(gemStats, activeRules)
     local sum = (gemStats.STAT_HASTE or 0) + (gemStats.STAT_CRIT or 0) + (gemStats.STAT_MASTERY or 0) + (gemStats.STAT_VERSATILITY or 0) + 
                 (gemStats.STAT_LEECH or 0) + (gemStats.STAT_AVOIDANCE or 0) + (gemStats.STAT_SPEED or 0) + (gemStats.STAT_ARMOR or 0) + primaryVal
 
-                
-    return score + sum
+    return score + (sum * 0.0001)
 end
 
 
@@ -207,6 +207,36 @@ function ItemEvaluator:ParseItemSockets(itemLink)
         }
     end
     return nil
+end
+
+-- Get the stats of the highest scoring gem for the current rules
+function ItemEvaluator:GetBestGemStats(activeRules)
+    local profile = Core.activeProfile
+    local chosenQuality = profile.gemQuality or 2
+    local bestScore = -1
+    local bestStats = nil
+    
+    for family, gemData in pairs(GemDB) do
+        if not gemData.isMeta then
+            local gemId, gemStats = self:ScaleGem(family, chosenQuality)
+            if gemId then
+                local score = self:ScoreGemStats(gemStats, activeRules)
+                if score > bestScore then
+                    bestScore = score
+                    bestStats = gemStats
+                end
+            end
+        end
+    end
+    
+    if not bestStats then
+        bestStats = {
+            STAT_CRIT = 0, STAT_HASTE = 0, STAT_MASTERY = 0, STAT_VERSATILITY = 0,
+            STAT_INTELLECT = 0, STAT_AGILITY = 0, STAT_STRENGTH = 0, STAT_STAMINA = 0,
+            STAT_LEECH = 0, STAT_AVOIDANCE = 0, STAT_SPEED = 0, STAT_ARMOR = 0,
+        }
+    end
+    return bestStats
 end
 
 -- Retrieve evaluated gems and check equipped & recommended item sockets

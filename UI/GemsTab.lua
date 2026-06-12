@@ -1,5 +1,5 @@
 -- GemsTab.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local L = addonTable.L
 local Core = addonTable.Core
 local ItemEvaluator = addonTable.ItemEvaluator
@@ -213,7 +213,7 @@ function UI:DrawGems()
         -- Display Unique flag and Score
         local lblScore = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         lblScore:SetPoint("RIGHT", row, "RIGHT", -5, 5)
-        lblScore:SetText("|cff00ff00" .. math.floor(g.score / 1000) .. "|r")
+        lblScore:SetText("|cff00ff00" .. math.floor(g.score) .. "|r")
         lblScore:SetJustifyH("RIGHT")
         
         if g.isUnique then

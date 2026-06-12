@@ -1,5 +1,5 @@
 -- Localization.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local L = {}
 addonTable.L = L
 
@@ -51,6 +51,7 @@ local enUS = {
     HELP_TOOLTIP_MIN = "• Minimum (%): The addon will pick items until it reaches the specified percentage. Perfect for important 'soft-caps' (e.g. 30% haste).",
     HELP_TOOLTIP_MAX = "• Maximize: The addon will equip items with this stat, ignoring the rest. Use for the strongest stat after caps are met.",
     HELP_TOOLTIP_ORDER = "• Order matters! Rules higher in the list are executed first.",
+    IMPOSSIBLE_SET_WARN = "Warning: Set requirements for '%s' lowered from %d to %d pieces (not enough matching items in bags/equipped).",
 
     -- Gems UI
     GEMS = "Gems",
@@ -152,6 +153,7 @@ local ruRU = {
     HELP_TOOLTIP_MIN = "• Minimum (%): Аддон будет подбирать вещи, пока не достигнет указанного процента. Идеально для сбора важных 'софт-капов' (например, 30% скорости).",
     HELP_TOOLTIP_MAX = "• Максимизировать: Аддон будет надевать вещи с этой характеристикой, игнорируя остальные. Используйте для самого сильного стата после того, как собраны капы.",
     HELP_TOOLTIP_ORDER = "• Порядок важен! Правила, стоящие ВЫШЕ в списке, выполняются первыми.",
+    IMPOSSIBLE_SET_WARN = "Внимание: Требование комплекта '%s' снижено с %d до %d предм. (недостаточно подходящих вещей в сумках/надето).",
 
     -- Gems UI
     GEMS = "Самоцветы",

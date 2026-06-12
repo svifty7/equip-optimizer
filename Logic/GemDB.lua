@@ -1,5 +1,5 @@
 -- GemDB.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local ItemEvaluator = addonTable.ItemEvaluator
 
 local GemDB = {

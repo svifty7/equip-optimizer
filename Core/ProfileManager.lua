@@ -1,5 +1,5 @@
 -- ProfileManager.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local Core = addonTable.Core
 
 function Core:GetDefaultProfileName()

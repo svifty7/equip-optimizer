@@ -1,7 +1,5 @@
 -- Ratings.lua for EquipOptimizer
-local addonName, addonTable = ...
-local L = addonTable.L
-local Core = addonTable.Core
+local _, addonTable = ...
 
 local ItemEvaluator = {}
 addonTable.ItemEvaluator = ItemEvaluator

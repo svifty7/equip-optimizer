@@ -1,5 +1,5 @@
 -- BagScanner.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local ItemEvaluator = addonTable.ItemEvaluator
 
 -- Helper to strip enchants and gems from item link
@@ -9,8 +9,18 @@ function ItemEvaluator:GetCleanItemLink(itemLink)
     if not itemString then return itemLink end
     
     local parts = {}
+    local hasGemsOrEnchants = false
+    local idx = 1
     for part in string.gmatch(itemString .. ":", "([^:]*):") do
         table.insert(parts, part)
+        if idx >= 2 and idx <= 6 and part ~= "" and part ~= "0" then
+            hasGemsOrEnchants = true
+        end
+        idx = idx + 1
+    end
+    
+    if not hasGemsOrEnchants then
+        return itemLink
     end
     
     if #parts >= 6 then
@@ -58,6 +68,35 @@ function ItemEvaluator:GetItemRatings(itemLink)
     return ratings
 end
 
+-- Get the stats of enchants and gems currently on the item link
+function ItemEvaluator:GetItemGemsAndEnchantsStats(itemLink)
+    local stats = {
+        STAT_CRIT = 0, STAT_HASTE = 0, STAT_MASTERY = 0, STAT_VERSATILITY = 0,
+        STAT_INTELLECT = 0, STAT_AGILITY = 0, STAT_STRENGTH = 0, STAT_STAMINA = 0,
+        STAT_LEECH = 0, STAT_AVOIDANCE = 0, STAT_SPEED = 0, STAT_ARMOR = 0,
+    }
+    local GetItemStats = C_Item and C_Item.GetItemStats or _G.GetItemStats
+    if not GetItemStats then return stats end
+    
+    local dirty = GetItemStats(itemLink)
+    local cleanLink = self:GetCleanItemLink(itemLink)
+    local clean = cleanLink and GetItemStats(cleanLink)
+    if dirty then
+        for rawKey, dirtyVal in pairs(dirty) do
+            local mapped = self.StatKeyMapping[rawKey]
+            if mapped then
+                local cleanVal = clean and clean[rawKey] or 0
+                local diff = dirtyVal - cleanVal
+                if diff > 0 then
+                    stats[mapped] = stats[mapped] + diff
+                end
+            end
+        end
+    end
+    return stats
+end
+
+
 
 -- Find all candidate items in bags for a slot
 function ItemEvaluator:GetBagItemsForSlot(slotId)
@@ -67,18 +106,20 @@ function ItemEvaluator:GetBagItemsForSlot(slotId)
     
     local GetItemInfo = C_Item and C_Item.GetItemInfo or _G.GetItemInfo
     
-    for bag = 0, 4 do
+    local numBags = NUM_BAG_SLOTS or 5
+    for bag = 0, numBags do
         local numSlots = C_Container.GetContainerNumSlots(bag)
-        for slot = 1, numSlots do
-            local itemLink = C_Container.GetContainerItemLink(bag, slot)
-            if itemLink then
-                local itemID = C_Item.GetItemInfoInstant(itemLink)
-                if itemID and IsEquippableItem(itemLink) then
-                    local _, _, _, _, _, _, _, _, equipType, _, _, _, _, _, _, setID = GetItemInfo(itemID)
-                    if not equipType then
-                        -- Async cache miss, request load
-                        C_Item.RequestLoadItemDataByID(itemID)
-                    else
+        if numSlots then
+            for slot = 1, numSlots do
+                local itemLink = C_Container.GetContainerItemLink(bag, slot)
+                if itemLink then
+                    local itemID = C_Item.GetItemInfoInstant(itemLink)
+                    if itemID and IsEquippableItem(itemLink) then
+                        local _, _, _, _, _, _, _, _, equipType, _, _, _, _, _, _, setID = GetItemInfo(itemLink)
+                        if not equipType then
+                            -- Async cache miss, request load
+                            C_Item.RequestLoadItemDataByID(itemID)
+                        else
                         local matches = false
                         for _, t in ipairs(slotTypes) do
                             if equipType == t then
@@ -89,6 +130,7 @@ function ItemEvaluator:GetBagItemsForSlot(slotId)
                         
                         if matches then
                             local ratings = self:GetItemRatings(itemLink)
+                            local gemsAndEnchants = self:GetItemGemsAndEnchantsStats(itemLink)
                             local ilvl = C_Item.GetDetailedItemLevelInfo(itemLink) or 0
                             
                             -- Sum rating for sorting
@@ -102,6 +144,7 @@ function ItemEvaluator:GetBagItemsForSlot(slotId)
                                 slot = slot,
                                 link = itemLink,
                                 ratings = ratings,
+                                gemsAndEnchants = gemsAndEnchants,
                                 ilvl = ilvl,
                                 totalRating = totalRating,
                                 equipType = equipType,
@@ -113,6 +156,7 @@ function ItemEvaluator:GetBagItemsForSlot(slotId)
                 end
             end
         end
+    end
     end
     return items
 end
@@ -127,8 +171,7 @@ function ItemEvaluator:GetEquippedItemsForSlot(slotId)
         local itemLink = GetInventoryItemLink("player", eqSlotId)
         if itemLink then
             local GetItemInfo = C_Item and C_Item.GetItemInfo or _G.GetItemInfo
-            local itemID = C_Item.GetItemInfoInstant(itemLink)
-            local _, _, _, _, _, _, _, _, equipType, _, _, _, _, _, _, setID = GetItemInfo(itemID or itemLink)
+            local _, _, _, _, _, _, _, _, equipType, _, _, _, _, _, _, setID = GetItemInfo(itemLink)
             if not equipType then
                 _, _, _, equipType = C_Item.GetItemInfoInstant(itemLink)
             end
@@ -143,6 +186,7 @@ function ItemEvaluator:GetEquippedItemsForSlot(slotId)
                 
                 if matches then
                     local ratings = self:GetItemRatings(itemLink)
+                    local gemsAndEnchants = self:GetItemGemsAndEnchantsStats(itemLink)
                     local ilvl = C_Item.GetDetailedItemLevelInfo(itemLink) or 0
                     
                     -- Sum rating for sorting
@@ -155,6 +199,7 @@ function ItemEvaluator:GetEquippedItemsForSlot(slotId)
                         slotId = eqSlotId,
                         link = itemLink,
                         ratings = ratings,
+                        gemsAndEnchants = gemsAndEnchants,
                         ilvl = ilvl,
                         totalRating = totalRating,
                         equipType = equipType,
@@ -308,12 +353,16 @@ function ItemEvaluator:GetResultingStats(combination, currentStats, ratingPerPer
         
         local equippedInfo = self.equipped[slotId]
         local eqRatings = equippedInfo and equippedInfo.ratings or {}
+        local eqGemsEnchants = equippedInfo and equippedInfo.gemsAndEnchants or {}
+        local eqPotential = equippedInfo and equippedInfo.potentialGemsStats or {}
         local newRatings = actualItem.ratings or {}
+        local newGemsEnchants = actualItem.gemsAndEnchants or {}
+        local newPotential = actualItem.potentialGemsStats or {}
         
         -- Sum up differences for all stats
         for k in pairs(netStats) do
-            local eqVal = eqRatings[k] or 0
-            local newVal = newRatings[k] or 0
+            local eqVal = (eqRatings[k] or 0) + (eqGemsEnchants[k] or 0) + (eqPotential[k] or 0)
+            local newVal = (newRatings[k] or 0) + (newGemsEnchants[k] or 0) + (newPotential[k] or 0)
             netStats[k] = netStats[k] + (newVal - eqVal)
         end
     end
@@ -350,8 +399,7 @@ function ItemEvaluator:GetAvailableSets()
     for slotId = 1, 19 do
         local itemLink = GetInventoryItemLink("player", slotId)
         if itemLink then
-            local itemID = C_Item.GetItemInfoInstant(itemLink)
-            local _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, setID = GetItemInfo(itemID or itemLink)
+            local _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, setID = GetItemInfo(itemLink)
             if setID and setID > 0 then
                 sets[setID] = itemLink
             end
@@ -365,8 +413,7 @@ function ItemEvaluator:GetAvailableSets()
             for slot = 1, numSlots do
                 local itemLink = C_Container.GetContainerItemLink(bag, slot)
                 if itemLink then
-                    local itemID = C_Item.GetItemInfoInstant(itemLink)
-                    local _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, setID = GetItemInfo(itemID or itemLink)
+                    local _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, setID = GetItemInfo(itemLink)
                     if setID and setID > 0 then
                         sets[setID] = itemLink
                     end
@@ -414,8 +461,7 @@ function ItemEvaluator:GetOwnedSetCounts()
     for slotId = 1, 19 do
         local itemLink = GetInventoryItemLink("player", slotId)
         if itemLink then
-            local itemID = C_Item.GetItemInfoInstant(itemLink)
-            local _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, setID = GetItemInfo(itemID or itemLink)
+            local _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, setID = GetItemInfo(itemLink)
             if setID and setID > 0 then
                 counts[setID] = (counts[setID] or 0) + 1
             end
@@ -429,8 +475,7 @@ function ItemEvaluator:GetOwnedSetCounts()
             for slot = 1, numSlots do
                 local itemLink = C_Container.GetContainerItemLink(bag, slot)
                 if itemLink then
-                    local itemID = C_Item.GetItemInfoInstant(itemLink)
-                    local _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, setID = GetItemInfo(itemID or itemLink)
+                    local _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, setID = GetItemInfo(itemLink)
                     if setID and setID > 0 then
                         counts[setID] = (counts[setID] or 0) + 1
                     end

@@ -1,5 +1,5 @@
 -- MainFrame.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local L = addonTable.L
 local Core = addonTable.Core
 local UI = addonTable.UI
@@ -182,7 +182,7 @@ eventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 eventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
 eventFrame:RegisterEvent("UNIT_AURA")
 eventFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
-eventFrame:SetScript("OnEvent", function(self, event, ...)
+eventFrame:SetScript("OnEvent", function(_, event, ...)
     if event == "UNIT_AURA" then
         local unit = ...
         if unit ~= "player" then return end

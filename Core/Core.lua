@@ -1,6 +1,5 @@
 -- Core.lua for EquipOptimizer
-local addonName, addonTable = ...
-local L = addonTable.L
+local _, addonTable = ...
 
 -- Initialize Addon
 local EquipOptimizer = LibStub("AceAddon-3.0"):NewAddon("EquipOptimizer", "AceEvent-3.0", "AceConsole-3.0")
@@ -87,3 +86,5 @@ function EquipOptimizer:ToggleWindow()
         self:Print("UI module is not loaded.")
     end
 end
+
+-- ShowDebugWindow and debug slash commands removed

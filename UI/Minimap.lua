@@ -1,5 +1,5 @@
 -- Minimap.lua for EquipOptimizer
-local addonName, addonTable = ...
+local _, addonTable = ...
 local Core = addonTable.Core
 local L = addonTable.L
 local ItemEvaluator = addonTable.ItemEvaluator
