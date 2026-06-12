@@ -35,6 +35,7 @@ function UI:Open()
     if not mainWindow then
         self:CreateMainWindow()
     end
+    ItemEvaluator:StartOptimize(true)
     mainWindow:Show()
     self:Refresh()
 end
@@ -180,15 +181,11 @@ eventFrame:RegisterEvent("BAG_UPDATE_DELAYED")
 eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 eventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 eventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
-eventFrame:RegisterEvent("UNIT_AURA")
 eventFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 eventFrame:SetScript("OnEvent", function(_, event, ...)
-    if event == "UNIT_AURA" then
-        local unit = ...
-        if unit ~= "player" then return end
-    end
     if UI:IsWindowOpen() then
         if not ItemEvaluator:IsEquipQueueActive() then
+            ItemEvaluator:StartOptimize()
             UI:Refresh()
         end
     end

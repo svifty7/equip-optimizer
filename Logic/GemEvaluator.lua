@@ -84,7 +84,7 @@ local STAT_PATTERNS = {
 }
 ItemEvaluator.STAT_PATTERNS = STAT_PATTERNS
 
--- Get stats of a gem by ID mapped to internal keys (checks GemDB first, falls back to tooltip parsing)
+-- Get stats of a gem by ID mapped to internal keys (checks GemDB first, tooltip parsing is disabled)
 function ItemEvaluator:GetGemStats(gemId)
     local family, rank = self:FindGemInDB(gemId)
     if family then
@@ -97,32 +97,6 @@ function ItemEvaluator:GetGemStats(gemId)
         STAT_INTELLECT = 0, STAT_AGILITY = 0, STAT_STRENGTH = 0, STAT_STAMINA = 0,
         STAT_LEECH = 0, STAT_AVOIDANCE = 0, STAT_SPEED = 0,
     }
-    tooltipScanner:ClearLines()
-    tooltipScanner:SetHyperlink("item:" .. gemId)
-    local numLines = tooltipScanner:NumLines() or 0
-    for i = 1, numLines do
-        local fontString = _G["EquipOptimizerGemScannerTextLeft" .. i]
-        local text = fontString and fontString:GetText()
-        if text then
-            for valStr, statName in text:gmatch("%+([%d%s%.,]+)%s*([^%+]+)") do
-                local val = tonumber((valStr:gsub("[%s%.,]", ""))) or 0
-                if val > 0 then
-                    local s = statName:lower()
-                    if s:find("primary") or s:find("основн") then
-                        local activePrimary = self:GetActivePrimaryStat()
-                        ratings[activePrimary] = ratings[activePrimary] + val
-                    else
-                        for _, entry in ipairs(STAT_PATTERNS) do
-                            if s:find(entry.pat) then
-                                ratings[entry.key] = ratings[entry.key] + val
-                                break
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
     return ratings
 end
 

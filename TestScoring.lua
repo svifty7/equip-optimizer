@@ -22,27 +22,92 @@ local TERTIARY_BASE_COSTS = {
 }
 
 -- Diminishing returns tiers for secondary stats (percent limit, penalty multiplier)
-local DR_TIERS = {
-    { limit = 30, penalty = 1.0 },
-    { limit = 39, penalty = 0.9 },
-    { limit = 47, penalty = 0.8 },
-    { limit = 54, penalty = 0.7 },
-    { limit = 66, penalty = 0.6 },
-    { limit = 78, penalty = 0.5 }
+local STAT_DR_INFO = {
+    STAT_CRIT = {
+        baseCost = 138,
+        tiers = {
+            { limit = 1380, penalty = 1.0 },
+            { limit = 1840, penalty = 0.9 },
+            { limit = 2300, penalty = 0.8 },
+        },
+        lastPenalty = 0.7
+    },
+    STAT_HASTE = {
+        baseCost = 132,
+        tiers = {
+            { limit = 1320, penalty = 1.0 },
+            { limit = 1760, penalty = 0.9 },
+            { limit = 2200, penalty = 0.8 },
+        },
+        lastPenalty = 0.7
+    },
+    STAT_MASTERY = {
+        baseCost = 138,
+        tiers = {
+            { limit = 1380, penalty = 1.0 },
+            { limit = 1840, penalty = 0.9 },
+            { limit = 2300, penalty = 0.8 },
+        },
+        lastPenalty = 0.7
+    },
+    STAT_VERSATILITY = {
+        baseCost = 162,
+        tiers = {
+            { limit = 1620, penalty = 1.0 },
+            { limit = 2160, penalty = 0.9 },
+            { limit = 2700, penalty = 0.8 },
+        },
+        lastPenalty = 0.7
+    }
 }
 
 -- Get mock base rating cost for secondary stats (fallback to level 90 Midnight values)
 function ItemEvaluator:GetBaseRatingCost(statKey, combatRatingID)
-    if statKey == "STAT_CRIT" then
-        return 1400
-    elseif statKey == "STAT_HASTE" then
-        return 1320
-    elseif statKey == "STAT_MASTERY" then
-        return 1400
-    elseif statKey == "STAT_VERSATILITY" then
-        return 1560
+    local info = STAT_DR_INFO[statKey]
+    if info then return info.baseCost end
+    if statKey == "STAT_CRIT" then return 138
+    elseif statKey == "STAT_HASTE" then return 132
+    elseif statKey == "STAT_MASTERY" then return 138
+    elseif statKey == "STAT_VERSATILITY" then return 162
     end
-    return 1400 -- fallback
+    return 138
+end
+
+-- Convert rating to percent with piecewise diminishing returns
+function ItemEvaluator:ConvertRatingToPercent(statKey, rating)
+    if not rating or rating <= 0 then
+        return 0
+    end
+    
+    local info = STAT_DR_INFO[statKey]
+    if not info then
+        local cost = TERTIARY_BASE_COSTS[statKey] or 1100
+        return rating / cost
+    end
+    
+    local baseCost = info.baseCost
+    local remaining = rating
+    local totalPercent = 0
+    local prevLimit = 0
+    
+    for _, tier in ipairs(info.tiers) do
+        local tierSize = tier.limit - prevLimit
+        if remaining > tierSize then
+            totalPercent = totalPercent + (tierSize * tier.penalty / baseCost)
+            remaining = remaining - tierSize
+            prevLimit = tier.limit
+        else
+            totalPercent = totalPercent + (remaining * tier.penalty / baseCost)
+            remaining = 0
+            break
+        end
+    end
+    
+    if remaining > 0 then
+        totalPercent = totalPercent + (remaining * info.lastPenalty / baseCost)
+    end
+    
+    return totalPercent
 end
 
 -- Convert target percent to target rating with piecewise diminishing returns
@@ -57,35 +122,24 @@ function ItemEvaluator:ConvertPercentToRating(statKey, targetPercent)
         return targetPercent * tertiaryCost
     end
     
-    -- Secondary stats mapping
-    local combatRatingID = nil
-    if statKey == "STAT_CRIT" then
-        combatRatingID = CR_CRIT
-    elseif statKey == "STAT_HASTE" then
-        combatRatingID = CR_HASTE
-    elseif statKey == "STAT_MASTERY" then
-        combatRatingID = CR_MASTERY
-    elseif statKey == "STAT_VERSATILITY" then
-        combatRatingID = CR_VERSATILITY
-    end
-    
-    if not combatRatingID then
+    local info = STAT_DR_INFO[statKey]
+    if not info then
         return targetPercent
     end
     
-    local baseCost = self:GetBaseRatingCost(statKey, combatRatingID)
-    
-    -- Piecewise linear diminishing returns calculation
+    local baseCost = info.baseCost
     local remaining = targetPercent
     local totalRating = 0
-    local prevLimit = 0
+    local prevLimitPercent = 0
+    local prevLimitRating = 0
     
-    for _, tier in ipairs(DR_TIERS) do
-        local tierSize = tier.limit - prevLimit
-        if remaining > tierSize then
-            totalRating = totalRating + (tierSize * baseCost / tier.penalty)
-            remaining = remaining - tierSize
-            prevLimit = tier.limit
+    for _, tier in ipairs(info.tiers) do
+        local tierSizeRating = tier.limit - prevLimitRating
+        local tierSizePercent = (tierSizeRating * tier.penalty) / baseCost
+        if remaining > tierSizePercent then
+            totalRating = totalRating + tierSizeRating
+            remaining = remaining - tierSizePercent
+            prevLimitRating = tier.limit
         else
             totalRating = totalRating + (remaining * baseCost / tier.penalty)
             remaining = 0
@@ -94,8 +148,7 @@ function ItemEvaluator:ConvertPercentToRating(statKey, targetPercent)
     end
     
     if remaining > 0 then
-        local lastPenalty = DR_TIERS[#DR_TIERS].penalty
-        totalRating = totalRating + (remaining * baseCost / lastPenalty)
+        totalRating = totalRating + (remaining * baseCost / info.lastPenalty)
     end
     
     return totalRating
@@ -213,15 +266,15 @@ local function RunTests()
     print("Starting optimization algorithm simulation tests...\n")
     
     -- Current player stats (stored in raw ratings)
-    -- Haste: 22% -> 22 * 1320 = 29040 rating
-    -- Crit: 15% -> 15 * 1400 = 21000 rating
-    -- Mastery: 18% -> 18 * 1400 = 25200 rating
-    -- Versatility: 5% -> 5 * 1560 = 7800 rating
+    -- Haste: 22% -> 2904 rating in Midnight
+    -- Crit: 15% -> 2070 rating in Midnight
+    -- Mastery: 18% -> 2484 rating in Midnight
+    -- Versatility: 5% -> 810 rating in Midnight
     local currentStats = {
-        STAT_CRIT = 21000,
-        STAT_HASTE = 29040,
-        STAT_MASTERY = 25200,
-        STAT_VERSATILITY = 7800,
+        STAT_CRIT = 2070,
+        STAT_HASTE = 2904,
+        STAT_MASTERY = 2484,
+        STAT_VERSATILITY = 810,
         STAT_LEECH = 0,
         STAT_AVOIDANCE = 0,
         STAT_SPEED = 0,
@@ -230,15 +283,15 @@ local function RunTests()
     
     -- Level 90 rating conversions
     local ratingPerPercent = {
-        STAT_CRIT = 1400,
-        STAT_HASTE = 1320,
-        STAT_MASTERY = 1400,
-        STAT_VERSATILITY = 1560,
+        STAT_CRIT = 138,
+        STAT_HASTE = 132,
+        STAT_MASTERY = 138,
+        STAT_VERSATILITY = 162,
     }
     
     -- Player rules (Priority order)
-    -- 1. Haste >= 25% (converts to 33000 rating)
-    -- 2. Mastery >= 20% (converts to 28000 rating)
+    -- 1. Haste >= 25% (converts to 3961 rating)
+    -- 2. Mastery >= 20% (converts to 3155 rating)
     -- 3. Maximize Crit
     local rules = {
         { stat = "STAT_HASTE", enabled = true, op = ">=", value = 25.0 },
@@ -256,14 +309,14 @@ local function RunTests()
     local candidates = {
         [11] = {
             equipped[11], -- Equipped Ring 1
-            -- Bag Ring A provides Haste = 4300 rating (which is > 3960 net needed to reach 33000)
-            { link = "Bag Ring A", ratings = { STAT_HASTE = 4300, STAT_CRIT = 50 }, gemsAndEnchants = { STAT_HASTE = 100 }, ilvl = 610, bag = 0, slot = 1 },
+            -- Bag Ring A provides Haste = 1500 rating
+            { link = "Bag Ring A", ratings = { STAT_HASTE = 1500, STAT_CRIT = 50 }, gemsAndEnchants = { STAT_HASTE = 100 }, ilvl = 610, bag = 0, slot = 1 },
             { link = "Bag Ring B", ratings = { STAT_MASTERY = 600, STAT_CRIT = 200 }, gemsAndEnchants = {}, ilvl = 615, bag = 0, slot = 2 }
         },
         [12] = {
             equipped[12], -- Equipped Ring 2
-            -- Bag Ring C provides Mastery = 3200 rating (which is > 2800 net needed to reach 28000)
-            { link = "Bag Ring C", ratings = { STAT_HASTE = 200, STAT_MASTERY = 3200 }, gemsAndEnchants = {}, ilvl = 610, bag = 0, slot = 3 }
+            -- Bag Ring C provides Mastery = 1200 rating
+            { link = "Bag Ring C", ratings = { STAT_HASTE = 200, STAT_MASTERY = 1200 }, gemsAndEnchants = {}, ilvl = 610, bag = 0, slot = 3 }
         }
     }
     
@@ -312,8 +365,7 @@ local function RunTests()
     assert(bestCombination ~= nil, "Should find at least one combination")
     
     local function GetPct(statKey, ratingVal)
-        local base = ratingPerPercent[statKey] or 1000
-        return ratingVal / base
+        return ItemEvaluator:ConvertRatingToPercent(statKey, ratingVal)
     end
     
     print("Optimization results:")

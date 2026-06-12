@@ -10,18 +10,9 @@ local tooltipScanner = CreateFrame("GameTooltip", "EquipOptimizerTooltipScanner"
 tooltipScanner:SetOwner(WorldFrame, "ANCHOR_NONE")
 
 local function IsItemUniqueEquipped(itemId)
-    tooltipScanner:ClearLines()
-    tooltipScanner:SetHyperlink("item:" .. itemId)
-    local numLines = tooltipScanner:NumLines() or 0
-    for i = 1, numLines do
-        local fontString = _G["EquipOptimizerTooltipScannerTextLeft" .. i]
-        local text = fontString and fontString:GetText()
-        if text then
-            local lowerText = text:lower()
-            if lowerText:find("unique") or lowerText:find("уникаль") or lowerText:find("ограничение") then
-                return true
-            end
-        end
+    local _, _, gemData = ItemEvaluator:FindGemInDB(itemId)
+    if gemData and gemData.isMeta then
+        return true
     end
     return false
 end

@@ -5,18 +5,79 @@ local Core = addonTable.Core
 local ItemEvaluator = addonTable.ItemEvaluator
 local UI = addonTable.UI
 
+function UI:RefreshProgress()
+    if not self:IsWindowOpen() then return end
+    
+    local recsContainer = self.mainWindow.recsContainer
+    if self.mainWindow.selectedTab == "recs" and ItemEvaluator.isOptimizing then
+        if recsContainer.title then
+            local titleText = L.RECOMMENDATIONS or "Recommendations"
+            local analyzedStr = string.format(L.ANALYZED_COMBINATIONS or "Analyzed: %d", ItemEvaluator.analyzedCombinations or 0)
+            recsContainer.title:SetText(string.format("%s (Расчет: %d%%, %s)", titleText, ItemEvaluator.optimizationProgress, analyzedStr))
+        end
+        if recsContainer.equipBtn then
+            self:SetButtonDisabled(recsContainer.equipBtn, true)
+            recsContainer.equipBtn.text:SetText(string.format("Оптимизация... (%d%%)", ItemEvaluator.optimizationProgress))
+        end
+        if recsContainer.reanalyzeBtn then
+            self:SetButtonDisabled(recsContainer.reanalyzeBtn, true)
+        end
+    end
+end
+
 function UI:DrawRecs()
     local recsContainer = self.mainWindow.recsContainer
-    self:ClearContainer(recsContainer)
+    
+    -- 1. Create main title once
+    if not recsContainer.title then
+        recsContainer.title = recsContainer:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        recsContainer.title:SetPoint("TOPLEFT", recsContainer, "TOPLEFT", 10, -10)
+    end
+    recsContainer.title:Show()
+    recsContainer.progressText = recsContainer.title
+    
+    -- Create reanalyze button once
+    if not recsContainer.reanalyzeBtn then
+        local btn = self:CreateStyledButton(recsContainer, 110, 22, L.REANALYZE or "Recalculate")
+        btn:SetPoint("TOPRIGHT", recsContainer, "TOPRIGHT", -10, -8)
+        btn:SetScript("OnClick", function()
+            ItemEvaluator:StartOptimize(true)
+            self:Refresh()
+        end)
+        recsContainer.reanalyzeBtn = btn
+    end
+    recsContainer.reanalyzeBtn:Show()
+    if ItemEvaluator.isOptimizing or ItemEvaluator:IsEquipQueueActive() then
+        self:SetButtonDisabled(recsContainer.reanalyzeBtn, true)
+    else
+        self:SetButtonDisabled(recsContainer.reanalyzeBtn, false)
+    end
+    
+    -- 2. Create scroll frame once
+    if not recsContainer.recsScroll then
+        local scroll, child = self:CreateScrollFrame(recsContainer, 803, 250)
+        scroll:SetPoint("TOPLEFT", recsContainer, "TOPLEFT", 10, -40)
+        recsContainer.recsScroll = scroll
+        recsContainer.recsChild = child
+    end
+    recsContainer.recsScroll:Show()
+    local recsChild = recsContainer.recsChild
+    
+    -- Clear dynamic rows inside child scroll
+    self:ClearContainer(recsChild)
     
     local recs, predictedStats = ItemEvaluator:Optimize()
     
-    local title = recsContainer:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    title:SetPoint("TOPLEFT", recsContainer, "TOPLEFT", 10, -10)
-    title:SetText(L.RECOMMENDATIONS or "Recommendations")
-    
-    local recsScroll, recsChild = self:CreateScrollFrame(recsContainer, 803, 250)
-    recsScroll:SetPoint("TOPLEFT", recsContainer, "TOPLEFT", 10, -40)
+    -- Update title
+    local titleText = L.RECOMMENDATIONS or "Recommendations"
+    if ItemEvaluator.isOptimizing then
+        local analyzedStr = string.format(L.ANALYZED_COMBINATIONS or "Analyzed: %d", ItemEvaluator.analyzedCombinations or 0)
+        titleText = string.format("%s (Расчет: %d%%, %s)", titleText, ItemEvaluator.optimizationProgress, analyzedStr)
+    elseif ItemEvaluator.hasOptimizationRun and (ItemEvaluator.analyzedCombinations or 0) > 0 then
+        local analyzedStr = string.format(L.ANALYZED_COMBINATIONS or "Analyzed: %d", ItemEvaluator.analyzedCombinations or 0)
+        titleText = string.format("%s (%s)", titleText, analyzedStr)
+    end
+    recsContainer.title:SetText(titleText)
     
     local offsetY = 0
     local count = 0
@@ -97,32 +158,57 @@ function UI:DrawRecs()
         end
     end
     
-    if count == 0 then
-        local noRecs = recsChild:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        noRecs:SetPoint("TOPLEFT", recsChild, "TOPLEFT", 10, -10)
+    if count == 0 and not ItemEvaluator.isOptimizing then
+        if not recsContainer.noRecsText then
+            recsContainer.noRecsText = recsChild:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            recsContainer.noRecsText:SetPoint("TOPLEFT", recsChild, "TOPLEFT", 10, -10)
+        end
+        recsContainer.noRecsText:Show()
         local rules = Core.activeProfile.rules or {}
         local hasActiveRules = false
         for _, r in ipairs(rules) do
             if r.enabled then hasActiveRules = true; break end
         end
         if not hasActiveRules then
-            noRecs:SetText("|cffffff00" .. L.NO_RULES .. "|r")
+            recsContainer.noRecsText:SetText("|cffffff00" .. L.NO_RULES .. "|r")
         else
-            noRecs:SetText("|cff00ff00" .. L.NO_RECS .. "|r")
+            recsContainer.noRecsText:SetText("|cff00ff00" .. L.NO_RECS .. "|r")
         end
         offsetY = offsetY + 30
+    else
+        if recsContainer.noRecsText then
+            recsContainer.noRecsText:Hide()
+        end
     end
     
     recsChild:SetHeight(offsetY)
     
-    -- Primary and Secondary Stats Panels
-    local primaryPanel = self:CreateBackdropFrame(recsContainer, L.PRIMARY_STATS or "Primary Stats")
-    primaryPanel:SetSize(390, 115)
-    primaryPanel:SetPoint("TOPLEFT", recsContainer, "TOPLEFT", 0, -305)
+    -- 3. Create panels once
+    if not recsContainer.primaryPanel then
+        recsContainer.primaryPanel = self:CreateBackdropFrame(recsContainer, L.PRIMARY_STATS or "Primary Stats")
+        recsContainer.primaryPanel:SetSize(390, 115)
+        recsContainer.primaryPanel:SetPoint("TOPLEFT", recsContainer, "TOPLEFT", 0, -305)
+    end
+    recsContainer.primaryPanel:Show()
+    local primaryPanel = recsContainer.primaryPanel
     
-    local secondaryPanel = self:CreateBackdropFrame(recsContainer, L.SECONDARY_STATS or "Secondary Stats")
-    secondaryPanel:SetSize(390, 115)
-    secondaryPanel:SetPoint("TOPLEFT", recsContainer, "TOPLEFT", 400, -305)
+    if not recsContainer.secondaryPanel then
+        recsContainer.secondaryPanel = self:CreateBackdropFrame(recsContainer, L.SECONDARY_STATS or "Secondary Stats")
+        recsContainer.secondaryPanel:SetSize(390, 115)
+        recsContainer.secondaryPanel:SetPoint("TOPLEFT", recsContainer, "TOPLEFT", 400, -305)
+    end
+    recsContainer.secondaryPanel:Show()
+    local secondaryPanel = recsContainer.secondaryPanel
+    
+    -- Hide old stat FontStrings from panels to redraw fresh ones without overlapping
+    local primRegions = { primaryPanel:GetRegions() }
+    for _, reg in ipairs(primRegions) do
+        if reg ~= primaryPanel.Title then reg:Hide() end
+    end
+    local secRegions = { secondaryPanel:GetRegions() }
+    for _, reg in ipairs(secRegions) do
+        if reg ~= secondaryPanel.Title then reg:Hide() end
+    end
     
     local activePrimaryStat = "STAT_INTELLECT"
     local spec = GetSpecialization()
@@ -175,14 +261,11 @@ function UI:DrawRecs()
             local currentVal = currentStats[key] or 0
             local currentPct = 0
             
-            local rating_per_percent = 0
             if statInfo.isPercent then
-                rating_per_percent = ItemEvaluator:GetRatingPerPercent(statInfo.ratingIndex or 0)
                 local bp = basePct[key] or 0
-                currentPct = bp + (rating_per_percent > 0 and (currentVal / rating_per_percent) or 0)
+                currentPct = bp + ItemEvaluator:ConvertRatingToPercent(key, currentVal)
             end
 
-            
             local predictedVal = predictedStats[key] or currentVal
             local diffRating = predictedVal - currentVal
             
@@ -192,7 +275,7 @@ function UI:DrawRecs()
             if statInfo.isPercent then
                 cleanLabel = statInfo.label:gsub(" ?%(%%%)", "")
                 local bp = basePct[key] or 0
-                local predictedPct = bp + (rating_per_percent > 0 and (predictedVal / rating_per_percent) or 0)
+                local predictedPct = bp + ItemEvaluator:ConvertRatingToPercent(key, predictedVal)
                 local diffPct = predictedPct - currentPct
                 
                 valStr = string.format("%.2f%% (%d)", predictedPct, predictedVal)
@@ -209,7 +292,6 @@ function UI:DrawRecs()
                     diffStr = string.format(" (|cffff0000%.1f|r)", diffRating)
                 end
             else
-                -- Primary stats / Stamina / Armor
                 valStr = string.format("%d", predictedVal)
                 if diffRating > 0 then
                     diffStr = string.format(" (|cff00ff00+%d|r)", diffRating)
@@ -236,14 +318,22 @@ function UI:DrawRecs()
     RenderPanelStats(primaryPanel, primaryStatsToShow, -10, 28)
     RenderPanelStats(secondaryPanel, secondaryStatsToShow, -10, 28)
     
-    -- Equip Button
-    local equipBtn = self:CreateStyledButton(recsContainer, 790, 35, L.EQUIP_BEST or "Equip Best")
-    equipBtn:SetPoint("TOPLEFT", primaryPanel, "BOTTOMLEFT", 0, -15)
+    -- 4. Create equipBtn once
+    if not recsContainer.equipBtn then
+        local equipBtn = self:CreateStyledButton(recsContainer, 790, 35, L.EQUIP_BEST or "Equip Best")
+        equipBtn:SetPoint("TOPLEFT", primaryPanel, "BOTTOMLEFT", 0, -15)
+        recsContainer.equipBtn = equipBtn
+    end
+    recsContainer.equipBtn:Show()
+    local equipBtn = recsContainer.equipBtn
     
     local function UpdateButtonState()
         if InCombatLockdown() then
             self:SetButtonDisabled(equipBtn, true)
             equipBtn.text:SetText(L.IN_COMBAT or "In Combat")
+        elseif ItemEvaluator.isOptimizing then
+            self:SetButtonDisabled(equipBtn, true)
+            equipBtn.text:SetText(string.format("Оптимизация... (%d%%)", ItemEvaluator.optimizationProgress))
         elseif ItemEvaluator:IsEquipQueueActive() then
             self:SetButtonDisabled(equipBtn, true)
             equipBtn.text:SetText(L.EQUIPPING or "Equipping...")

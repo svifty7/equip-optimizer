@@ -33,15 +33,45 @@ local TERTIARY_BASE_COSTS = {
 ItemEvaluator.TERTIARY_BASE_COSTS = TERTIARY_BASE_COSTS
 
 -- Diminishing returns tiers for secondary stats (percent limit, penalty multiplier)
-local DR_TIERS = {
-    { limit = 30, penalty = 1.0 },
-    { limit = 39, penalty = 0.9 },
-    { limit = 47, penalty = 0.8 },
-    { limit = 54, penalty = 0.7 },
-    { limit = 66, penalty = 0.6 },
-    { limit = 78, penalty = 0.5 }
+local STAT_DR_INFO = {
+    STAT_CRIT = {
+        baseCost = 138,
+        tiers = {
+            { limit = 1380, penalty = 1.0 },
+            { limit = 1840, penalty = 0.9 },
+            { limit = 2300, penalty = 0.8 },
+        },
+        lastPenalty = 0.7
+    },
+    STAT_HASTE = {
+        baseCost = 132,
+        tiers = {
+            { limit = 1320, penalty = 1.0 },
+            { limit = 1760, penalty = 0.9 },
+            { limit = 2200, penalty = 0.8 },
+        },
+        lastPenalty = 0.7
+    },
+    STAT_MASTERY = {
+        baseCost = 138,
+        tiers = {
+            { limit = 1380, penalty = 1.0 },
+            { limit = 1840, penalty = 0.9 },
+            { limit = 2300, penalty = 0.8 },
+        },
+        lastPenalty = 0.7
+    },
+    STAT_VERSATILITY = {
+        baseCost = 162,
+        tiers = {
+            { limit = 1620, penalty = 1.0 },
+            { limit = 2160, penalty = 0.9 },
+            { limit = 2700, penalty = 0.8 },
+        },
+        lastPenalty = 0.7
+    }
 }
-ItemEvaluator.DR_TIERS = DR_TIERS
+ItemEvaluator.STAT_DR_INFO = STAT_DR_INFO
 
 -- Stat key mapping from GetItemStats keys to internal keys
 local StatKeyMapping = {}
@@ -109,52 +139,63 @@ local SlotToTypes = {
 }
 ItemEvaluator.SlotToTypes = SlotToTypes
 
--- Get combat rating conversion factors dynamically from character sheet
+-- Get combat rating conversion factors statically for lvl 90 (Midnight)
 function ItemEvaluator:GetRatingPerPercent(ratingIndex)
-    local rating = GetCombatRating(ratingIndex) or 0
-    local percent = GetCombatRatingBonus(ratingIndex) or 0
-    if percent > 0 then
-        return rating / percent
-    end
-    
-    -- Fallback levels based on WoW 11.x / 12.x scaling
-    local level = UnitLevel("player") or 80
-    if level >= 80 then
-        if ratingIndex == CR_HASTE then return 660
-        elseif ratingIndex == CR_CRIT then return 700
-        elseif ratingIndex == CR_MASTERY then return 700
-        elseif ratingIndex == CR_VERSATILITY then return 780
-        end
-    elseif level >= 70 then
-        if ratingIndex == CR_HASTE then return 170
-        elseif ratingIndex == CR_CRIT then return 180
-        elseif ratingIndex == CR_MASTERY then return 180
-        elseif ratingIndex == CR_VERSATILITY then return 205
-        end
+    if ratingIndex == CR_HASTE then return 132
+    elseif ratingIndex == CR_CRIT then return 138
+    elseif ratingIndex == CR_MASTERY then return 138
+    elseif ratingIndex == CR_VERSATILITY then return 162
     end
     return 100 -- ultimate fallback
 end
 
--- Get dynamic base rating cost for secondary stats or fallback to level 90 (Midnight)
+-- Get static base rating cost for secondary stats for lvl 90 (Midnight)
 function ItemEvaluator:GetBaseRatingCost(statKey, combatRatingID)
-    local rating = GetCombatRating and GetCombatRating(combatRatingID) or 0
-    local percent = GetCombatRatingBonus and GetCombatRatingBonus(combatRatingID) or 0
-    if percent > 0 and percent < 30 then
-        return rating / percent
+    local info = STAT_DR_INFO[statKey]
+    if info then return info.baseCost end
+    if statKey == "STAT_CRIT" then return 138
+    elseif statKey == "STAT_HASTE" then return 132
+    elseif statKey == "STAT_MASTERY" then return 138
+    elseif statKey == "STAT_VERSATILITY" then return 162
+    end
+    return 138 -- fallback
+end
+
+-- Convert rating to percent with piecewise diminishing returns
+function ItemEvaluator:ConvertRatingToPercent(statKey, rating)
+    if not rating or rating <= 0 then
+        return 0
     end
     
-    -- Hardcoded constants for lvl 90 (Midnight)
-    if statKey == "STAT_CRIT" then
-        return 1400
-    elseif statKey == "STAT_HASTE" then
-        return 1320
-    elseif statKey == "STAT_MASTERY" then
-        return 1400
-    elseif statKey == "STAT_VERSATILITY" then
-        return 1560
+    local info = STAT_DR_INFO[statKey]
+    if not info then
+        local cost = self.TERTIARY_BASE_COSTS[statKey] or 1100
+        return rating / cost
     end
     
-    return 1400 -- fallback
+    local baseCost = info.baseCost
+    local remaining = rating
+    local totalPercent = 0
+    local prevLimit = 0
+    
+    for _, tier in ipairs(info.tiers) do
+        local tierSize = tier.limit - prevLimit
+        if remaining > tierSize then
+            totalPercent = totalPercent + (tierSize * tier.penalty / baseCost)
+            remaining = remaining - tierSize
+            prevLimit = tier.limit
+        else
+            totalPercent = totalPercent + (remaining * tier.penalty / baseCost)
+            remaining = 0
+            break
+        end
+    end
+    
+    if remaining > 0 then
+        totalPercent = totalPercent + (remaining * info.lastPenalty / baseCost)
+    end
+    
+    return totalPercent
 end
 
 -- Convert target percent to target rating with piecewise diminishing returns
@@ -169,35 +210,24 @@ function ItemEvaluator:ConvertPercentToRating(statKey, targetPercent)
         return targetPercent * tertiaryCost
     end
     
-    -- Secondary stats mapping
-    local combatRatingID = nil
-    if statKey == "STAT_CRIT" then
-        combatRatingID = CR_CRIT
-    elseif statKey == "STAT_HASTE" then
-        combatRatingID = CR_HASTE
-    elseif statKey == "STAT_MASTERY" then
-        combatRatingID = CR_MASTERY
-    elseif statKey == "STAT_VERSATILITY" then
-        combatRatingID = CR_VERSATILITY
-    end
-    
-    if not combatRatingID then
+    local info = STAT_DR_INFO[statKey]
+    if not info then
         return targetPercent
     end
     
-    local baseCost = self:GetBaseRatingCost(statKey, combatRatingID)
-    
-    -- Piecewise linear diminishing returns calculation
+    local baseCost = info.baseCost
     local remaining = targetPercent
     local totalRating = 0
-    local prevLimit = 0
+    local prevLimitPercent = 0
+    local prevLimitRating = 0
     
-    for _, tier in ipairs(DR_TIERS) do
-        local tierSize = tier.limit - prevLimit
-        if remaining > tierSize then
-            totalRating = totalRating + (tierSize * baseCost / tier.penalty)
-            remaining = remaining - tierSize
-            prevLimit = tier.limit
+    for _, tier in ipairs(info.tiers) do
+        local tierSizeRating = tier.limit - prevLimitRating
+        local tierSizePercent = (tierSizeRating * tier.penalty) / baseCost
+        if remaining > tierSizePercent then
+            totalRating = totalRating + tierSizeRating
+            remaining = remaining - tierSizePercent
+            prevLimitRating = tier.limit
         else
             totalRating = totalRating + (remaining * baseCost / tier.penalty)
             remaining = 0
@@ -206,8 +236,7 @@ function ItemEvaluator:ConvertPercentToRating(statKey, targetPercent)
     end
     
     if remaining > 0 then
-        local lastPenalty = DR_TIERS[#DR_TIERS].penalty
-        totalRating = totalRating + (remaining * baseCost / lastPenalty)
+        totalRating = totalRating + (remaining * baseCost / info.lastPenalty)
     end
     
     return totalRating

@@ -98,14 +98,15 @@ end
 
 
 
--- Find all candidate items in bags for a slot
-function ItemEvaluator:GetBagItemsForSlot(slotId)
-    local items = {}
-    local slotTypes = self.SlotToTypes[slotId]
-    if not slotTypes then return items end
-    
+local bagCache = nil
+
+function ItemEvaluator:ClearBagCache()
+    bagCache = nil
+end
+
+function ItemEvaluator:BuildBagCache()
+    bagCache = {}
     local GetItemInfo = C_Item and C_Item.GetItemInfo or _G.GetItemInfo
-    
     local numBags = NUM_BAG_SLOTS or 5
     for bag = 0, numBags do
         local numSlots = C_Container.GetContainerNumSlots(bag)
@@ -117,18 +118,8 @@ function ItemEvaluator:GetBagItemsForSlot(slotId)
                     if itemID and IsEquippableItem(itemLink) then
                         local _, _, _, _, _, _, _, _, equipType, _, _, _, _, _, _, setID = GetItemInfo(itemLink)
                         if not equipType then
-                            -- Async cache miss, request load
                             C_Item.RequestLoadItemDataByID(itemID)
                         else
-                        local matches = false
-                        for _, t in ipairs(slotTypes) do
-                            if equipType == t then
-                                matches = true
-                                break
-                            end
-                        end
-                        
-                        if matches then
                             local ratings = self:GetItemRatings(itemLink)
                             local gemsAndEnchants = self:GetItemGemsAndEnchantsStats(itemLink)
                             local ilvl = C_Item.GetDetailedItemLevelInfo(itemLink) or 0
@@ -139,7 +130,7 @@ function ItemEvaluator:GetBagItemsForSlot(slotId)
                                 totalRating = totalRating + val
                             end
                             
-                            table.insert(items, {
+                            table.insert(bagCache, {
                                 bag = bag,
                                 slot = slot,
                                 link = itemLink,
@@ -157,7 +148,31 @@ function ItemEvaluator:GetBagItemsForSlot(slotId)
             end
         end
     end
+end
+
+-- Find all candidate items in bags for a slot (uses cache)
+function ItemEvaluator:GetBagItemsForSlot(slotId)
+    local items = {}
+    local slotTypes = self.SlotToTypes[slotId]
+    if not slotTypes then return items end
+    
+    if not bagCache then
+        self:BuildBagCache()
     end
+    
+    for _, item in ipairs(bagCache) do
+        local matches = false
+        for _, t in ipairs(slotTypes) do
+            if item.equipType == t then
+                matches = true
+                break
+            end
+        end
+        if matches then
+            table.insert(items, item)
+        end
+    end
+    
     return items
 end
 
@@ -286,14 +301,20 @@ function ItemEvaluator:GetPlayerCurrentStats()
     local armor = 0
     
     if UnitStat then
-        strength = select(2, UnitStat("player", 1)) or 0
-        agility = select(2, UnitStat("player", 2)) or 0
-        stamina = select(2, UnitStat("player", 3)) or 0
-        intellect = select(2, UnitStat("player", 4)) or 0
+        local baseStr = select(1, UnitStat("player", 1)) or 0
+        local baseAgi = select(1, UnitStat("player", 2)) or 0
+        local baseSta = select(1, UnitStat("player", 3)) or 0
+        local baseInt = select(1, UnitStat("player", 4)) or 0
+        
+        strength = baseStr + (eqClean.STAT_STRENGTH or 0) + (gemsEnchants.STAT_STRENGTH or 0)
+        agility = baseAgi + (eqClean.STAT_AGILITY or 0) + (gemsEnchants.STAT_AGILITY or 0)
+        stamina = baseSta + (eqClean.STAT_STAMINA or 0) + (gemsEnchants.STAT_STAMINA or 0)
+        intellect = baseInt + (eqClean.STAT_INTELLECT or 0) + (gemsEnchants.STAT_INTELLECT or 0)
     end
     
     if UnitArmor then
-        armor = select(2, UnitArmor("player")) or 0
+        local baseArmor = select(1, UnitArmor("player")) or 0
+        armor = baseArmor + (eqClean.STAT_ARMOR or 0) + (gemsEnchants.STAT_ARMOR or 0)
     end
     
     local avgIlvl = 0
@@ -486,43 +507,9 @@ function ItemEvaluator:GetOwnedSetCounts()
     return counts
 end
 
--- Scan tooltip to find maximum number of items in a set
+-- Scan tooltip to find maximum number of items in a set (disabled to prevent localization issues)
 function ItemEvaluator:GetItemSetMax(itemLink)
-    -- Try C_TooltipInfo first (modern Retail/Classic)
-    if C_TooltipInfo and C_TooltipInfo.GetHyperlink then
-        local tooltipData = C_TooltipInfo.GetHyperlink(itemLink)
-        if tooltipData and tooltipData.lines then
-            for i = 1, #tooltipData.lines do
-                local line = tooltipData.lines[i]
-                if line and line.leftText then
-                    local _, maxVal = string.match(line.leftText, "%((%d+)%s*/%s*(%d+)%)")
-                    if maxVal then
-                        return tonumber(maxVal)
-                    end
-                end
-            end
-        end
-    end
-    
-    -- Fallback to hidden tooltip scanner (older WoW / Classic fallback)
-    if not self.tooltipScanner then
-        self.tooltipScanner = CreateFrame("GameTooltip", "EquipOptimizerTooltipScanner", nil, "GameTooltipTemplate")
-        self.tooltipScanner:SetOwner(UIParent, "ANCHOR_NONE")
-    end
-    self.tooltipScanner:ClearLines()
-    self.tooltipScanner:SetHyperlink(itemLink)
-    for i = 1, self.tooltipScanner:NumLines() do
-        local fontString = _G["EquipOptimizerTooltipScannerTextLeft" .. i]
-        local text = fontString and fontString:GetText()
-        if text then
-            local _, maxVal = string.match(text, "%((%d+)%s*/%s*(%d+)%)")
-            if maxVal then
-                return tonumber(maxVal)
-            end
-        end
-    end
-    
-    return nil
+    return 5
 end
 
 

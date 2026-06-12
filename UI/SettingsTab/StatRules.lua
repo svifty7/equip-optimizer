@@ -112,15 +112,13 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                 
                 local currentStats = ItemEvaluator:GetPlayerCurrentStats()
                 local basePct = ItemEvaluator:GetBaseStatPercentages()
-                currentVal = currentStats[rule.stat] or 0
+                                 currentVal = currentStats[rule.stat] or 0
                 if rule.stat == "STAT_HASTE" or rule.stat == "STAT_CRIT" or rule.stat == "STAT_MASTERY" or rule.stat == "STAT_VERSATILITY" then
-                    local ratingIndex = ItemEvaluator["CR_" .. rule.stat:sub(6)]
-                    local rating_per_percent = ItemEvaluator:GetRatingPerPercent(ratingIndex)
                     local bp = basePct[rule.stat] or 0
-                    currentPct = bp + (rating_per_percent > 0 and (currentVal / rating_per_percent) or 0)
+                    currentPct = bp + ItemEvaluator:ConvertRatingToPercent(rule.stat, currentVal)
                     isPercent = true
                 elseif rule.stat == "STAT_LEECH" or rule.stat == "STAT_AVOIDANCE" or rule.stat == "STAT_SPEED" then
-                    currentPct = currentVal / 1100
+                    currentPct = ItemEvaluator:ConvertRatingToPercent(rule.stat, currentVal)
                     isPercent = true
                 end
                 
@@ -207,7 +205,7 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                 cb:SetScript("OnClick", function(selfCb)
                     rule.enabled = selfCb:GetChecked()
                     UpdateRowState()
-                    ItemEvaluator:Optimize()
+                    ItemEvaluator:StartOptimize(true)
                     if self:IsWindowOpen() and self.mainWindow.selectedTab == "recs" then
                         self:Refresh()
                     end
@@ -222,7 +220,7 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                         rule.op = key
                         ddOp.text:SetText(key)
                         UpdateValueState()
-                        ItemEvaluator:Optimize()
+                        ItemEvaluator:StartOptimize(true)
                         if self:IsWindowOpen() and self.mainWindow.selectedTab == "recs" then
                             self:Refresh()
                         end
@@ -232,14 +230,14 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                 valEB:SetScript("OnEnterPressed", function(selfEb)
                     rule.value = tonumber(selfEb:GetText()) or 0
                     selfEb:ClearFocus()
-                    ItemEvaluator:Optimize()
+                    ItemEvaluator:StartOptimize(true)
                     if self:IsWindowOpen() and self.mainWindow.selectedTab == "recs" then
                         self:Refresh()
                     end
                 end)
                 valEB:SetScript("OnEditFocusLost", function(selfEb)
                     rule.value = tonumber(selfEb:GetText()) or 0
-                    ItemEvaluator:Optimize()
+                    ItemEvaluator:StartOptimize(true)
                     if self:IsWindowOpen() and self.mainWindow.selectedTab == "recs" then
                         self:Refresh()
                     end
@@ -250,7 +248,7 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                     rules[idx] = rules[idx-1]
                     rules[idx-1] = tmp
                     RefreshRulesList()
-                    ItemEvaluator:Optimize()
+                    ItemEvaluator:StartOptimize(true)
                 end)
                 
                 btnDown:SetScript("OnClick", function()
@@ -258,7 +256,7 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                     rules[idx] = rules[idx+1]
                     rules[idx+1] = tmp
                     RefreshRulesList()
-                    ItemEvaluator:Optimize()
+                    ItemEvaluator:StartOptimize(true)
                 end)
                 
                 yOffset = yOffset + 30
