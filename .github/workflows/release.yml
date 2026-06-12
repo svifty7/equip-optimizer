@@ -2,8 +2,6 @@ name: Package and Release WoW Addon
 
 on:
   push:
-    branches:
-      - main
     tags:
       - 'v[0-9]*'
   workflow_dispatch:
@@ -21,26 +19,6 @@ jobs:
         with:
           fetch-depth: 0 # Full history is required for changelog generation and versioning
 
-      - name: Create and Push Tag
-        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-        run: |
-          VERSION=$(grep "^## Version:" EquipOptimizer.toc | sed 's/## Version: //g' | xargs)
-          TAG="v$VERSION"
-          echo "Detected version: $VERSION"
-          echo "Target tag: $TAG"
-          
-          git fetch --tags || true
-          if git tag -l | grep -q "^$TAG$"; then
-            echo "Tag $TAG already exists on remote. Skipping tag creation."
-          else
-            echo "Tag $TAG does not exist. Creating and pushing tag..."
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git tag "$TAG"
-            git push origin "$TAG"
-            echo "GITHUB_REF=refs/tags/$TAG" >> $GITHUB_ENV
-          fi
-
       - name: Package WoW Addon
         uses: BigWigsMods/packager@v2
         env:
@@ -51,6 +29,6 @@ jobs:
       - name: Upload Packaged Addon Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: EquipOptimizer-Addon
           path: .release/*.zip
+          include-hidden-files: true
           if-no-files-found: error
