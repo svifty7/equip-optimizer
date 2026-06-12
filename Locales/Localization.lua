@@ -46,6 +46,23 @@ local enUS = {
     HELP_TOOLTIP_MAX = "• Maximize: The addon will equip items with this stat, ignoring the rest. Use for the strongest stat after caps are met.",
     HELP_TOOLTIP_ORDER = "• Order matters! Rules higher in the list are executed first.",
 
+    -- Gems UI
+    GEMS = "Gems",
+    BEST_GEMS = "Best Gems",
+    EQUIPPED_SOCKETS = "Equipped Sockets",
+    GEMS_EQUIPPED_TITLE = "Equipped Gear",
+    GEMS_RECOMMENDED_TITLE = "Recommended Gear (In Bags)",
+    RECOMMENDED_GEM = "Recommended",
+    ALTERNATIVES = "Alternatives",
+    NO_SOCKETS = "No items with sockets equipped!",
+    SOCKET = "Socket",
+    UNIQUE_GEM = "Unique",
+    GEM_QUALITY = "Gem Quality",
+    GEM_RANK_1 = "Rank 1 (Bronze)",
+    GEM_RANK_2 = "Rank 2 (Silver)",
+    GEM_RANK_3 = "Rank 3 (Gold)",
+    META_GEM_PREF = "Meta Gem Preference",
+    META_AUTO = "Automatic",
     
     -- Stats
     STAT_GROUP_SECONDARY = "Secondary Stats",
@@ -120,10 +137,27 @@ local ruRU = {
     MINIMAP_TOOLTIP_RIGHT = "ПКМ: Надеть лучшее снаряжение",
     EMPTY = "Пусто",
     HELP_TOOLTIP_TITLE = "Как настраивать характеристики:",
-    HELP_TOOLTIP_MIN = "• Минимум (%): Аддон будет подбирать вещи, пока не достигнет указанного процента. Идеально для сбора важных 'софт-капов' (например, 30% скорости).",
+    HELP_TOOLTIP_MIN = "• Minimum (%): Аддон будет подбирать вещи, пока не достигнет указанного процента. Идеально для сбора важных 'софт-капов' (например, 30% скорости).",
     HELP_TOOLTIP_MAX = "• Максимизировать: Аддон будет надевать вещи с этой характеристикой, игнорируя остальные. Используйте для самого сильного стата после того, как собраны капы.",
     HELP_TOOLTIP_ORDER = "• Порядок важен! Правила, стоящие ВЫШЕ в списке, выполняются первыми.",
 
+    -- Gems UI
+    GEMS = "Самоцветы",
+    BEST_GEMS = "Лучшие самоцветы",
+    EQUIPPED_SOCKETS = "Гнезда в экипировке",
+    GEMS_EQUIPPED_TITLE = "Экипировано",
+    GEMS_RECOMMENDED_TITLE = "Рекомендуется надеть",
+    RECOMMENDED_GEM = "Рекомендуется",
+    ALTERNATIVES = "Альтернативы",
+    NO_SOCKETS = "Нет экипированных предметов с гнездами!",
+    SOCKET = "Гнездо",
+    UNIQUE_GEM = "Уникальный",
+    GEM_QUALITY = "Качество камней",
+    GEM_RANK_1 = "Rank 1 (Бронза)",
+    GEM_RANK_2 = "Rank 2 (Серебро)",
+    GEM_RANK_3 = "Rank 3 (Золото)",
+    META_GEM_PREF = "Выбор мета-камня",
+    META_AUTO = "Автоматически",
 
     -- Stats
     STAT_GROUP_SECONDARY = "Вторичные характеристики",

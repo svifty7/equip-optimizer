@@ -18,14 +18,33 @@ Libs\AceConsole-3.0\AceConsole-3.0.xml
 Libs\AceGUI-3.0\AceGUI-3.0.xml
 
 # Localization
-Localization.lua
+Locales\Localization.lua
 
-# Core & Logic
-Core.lua
-ItemEvaluator.lua
+# Core & Profile Management
+Core\Core.lua
+Core\ProfileManager.lua
+Core\ImportExport.lua
+
+# Logic & Optimization
+Logic\Ratings.lua
+Logic\Comparator.lua
+Logic\BagScanner.lua
+Logic\Optimizer.lua
+Logic\EquipQueue.lua
+Logic\GemDB.lua
+Logic\GemEvaluator.lua
 
 # User Interface
-UI.lua
+UI\Widgets\Dropdown.lua
+UI\Widgets\Basic.lua
+UI\MainFrame.lua
+UI\Minimap.lua
+UI\SettingsTab\ProfilePanel.lua
+UI\SettingsTab\ReservedSlots.lua
+UI\SettingsTab\StatRules.lua
+UI\SettingsTab.lua
+UI\RecsTab.lua
+UI\GemsTab.lua
 
 # Theme Skinning
-ElvUI_Skin.lua
+Skins\ElvUI_Skin.lua

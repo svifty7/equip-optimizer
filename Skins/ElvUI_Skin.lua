@@ -3,7 +3,6 @@ local addonName, addonTable = ...
 local Core = addonTable.Core
 local IsAddOnLoaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
 
-
 local ElvUI_Skin = {}
 Core.ElvUI_Skin = ElvUI_Skin
 
@@ -39,14 +38,6 @@ function ElvUI_Skin:SkinFrame(widget)
             widget.titletext:SetTextColor(1, 0.8, 0, 1)
         end
     end
-end
-
--- Custom widget level styling if needed
-function ElvUI_Skin:SkinContainer(container)
-    -- ElvUI automatically registers skins for standard AceGUI widgets
-    -- (buttons, dropdowns, check-boxes, edit-boxes, scroll-frames) 
-    -- if the Ace3 skinning option is active in ElvUI settings.
-    -- This method is left as a placeholder for any future custom UI styling.
 end
 
 -- Wait for ADDON_LOADED to initialize
