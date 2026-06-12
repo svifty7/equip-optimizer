@@ -18,3 +18,4 @@ ignore:
   - .pkgmeta
   - .test
   - TestScoring.lua
+  - Libs
