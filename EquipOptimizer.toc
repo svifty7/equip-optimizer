@@ -4,7 +4,9 @@
 ## Notes: Optimizes your gear based on custom stat rules and priorities.
 ## Notes-ruRU: Оптимизирует вашу экипировку на основе пользовательских правил и приоритетов характеристик.
 ## Author: svifty7 & Antigravity
-## Version: 1.0.0
+## Version: 0.0.1
+# ## X-Curse-Project-ID: YOUR_CURSEFORGE_PROJECT_ID
+# ## X-Wago-ID: YOUR_WAGO_PROJECT_ID
 ## SavedVariables: EquipOptimizerDB
 ## OptionalDeps: ElvUI
 

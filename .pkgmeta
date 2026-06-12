@@ -10,3 +10,11 @@ externals:
   Libs/AceDB-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceDB-3.0
   Libs/AceConsole-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceConsole-3.0
   Libs/AceGUI-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceGUI-3.0
+
+ignore:
+  - .git
+  - .gitignore
+  - .idea
+  - .pkgmeta
+  - .test
+  - TestScoring.lua
