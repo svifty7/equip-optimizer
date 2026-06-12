@@ -12,36 +12,17 @@ function ItemEvaluator:CompareCombinations(combA, combB, rules)
             if valA ~= valB then
                 return valA > valB
             end
-        elseif rule.op == "MIN" then
-            if valA ~= valB then
-                return valA < valB
-            end
-        else
+        else -- rule.op == ">="
             local targetRating = self:ConvertPercentToRating(rule.stat, rule.value or 0)
-            local satA = false
-            local satB = false
-            
-            if rule.op == ">=" then satA = (valA >= targetRating); satB = (valB >= targetRating)
-            elseif rule.op == "<=" then satA = (valA <= targetRating); satB = (valB <= targetRating)
-            elseif rule.op == ">" then satA = (valA > targetRating); satB = (valB > targetRating)
-            elseif rule.op == "<" then satA = (valA < targetRating); satB = (valB < targetRating)
-            elseif rule.op == "=" then
-                satA = (math.abs(valA - targetRating) < 50)
-                satB = (math.abs(valB - targetRating) < 50)
-            end
+            local satA = (valA >= targetRating)
+            local satB = (valB >= targetRating)
             
             if satA ~= satB then
                 return satA
             elseif not satA then
-                -- Neither satisfies, compare who is closer
-                if rule.op == ">=" or rule.op == ">" then
-                    if valA ~= valB then return valA > valB end
-                elseif rule.op == "<=" or rule.op == "<" then
-                    if valA ~= valB then return valA < valB end
-                else -- "="
-                    local distA = math.abs(valA - targetRating)
-                    local distB = math.abs(valB - targetRating)
-                    if distA ~= distB then return distA < distB end
+                -- Neither satisfies, compare who is closer (higher value is closer to target)
+                if valA ~= valB then
+                    return valA > valB
                 end
             end
         end

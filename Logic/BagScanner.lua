@@ -47,7 +47,7 @@ function ItemEvaluator:GetBagItemsForSlot(slotId)
             if itemLink then
                 local itemID = C_Item.GetItemInfoInstant(itemLink)
                 if itemID and IsEquippableItem(itemLink) then
-                    local _, _, _, _, _, _, _, _, equipType = GetItemInfo(itemLink)
+                    local _, _, _, _, _, _, _, _, equipType, _, _, _, _, _, _, setID = GetItemInfo(itemID)
                     if not equipType then
                         -- Async cache miss, request load
                         C_Item.RequestLoadItemDataByID(itemID)
@@ -78,7 +78,8 @@ function ItemEvaluator:GetBagItemsForSlot(slotId)
                                 ilvl = ilvl,
                                 totalRating = totalRating,
                                 equipType = equipType,
-                                isEquipped = false
+                                isEquipped = false,
+                                setID = setID
                             })
                         end
                     end
@@ -98,7 +99,12 @@ function ItemEvaluator:GetEquippedItemsForSlot(slotId)
     for eqSlotId, _ in pairs(self.SlotToTypes) do
         local itemLink = GetInventoryItemLink("player", eqSlotId)
         if itemLink then
-            local _, _, _, equipType = C_Item.GetItemInfoInstant(itemLink)
+            local GetItemInfo = C_Item and C_Item.GetItemInfo or _G.GetItemInfo
+            local itemID = C_Item.GetItemInfoInstant(itemLink)
+            local _, _, _, _, _, _, _, _, equipType, _, _, _, _, _, _, setID = GetItemInfo(itemID or itemLink)
+            if not equipType then
+                _, _, _, equipType = C_Item.GetItemInfoInstant(itemLink)
+            end
             if equipType then
                 local matches = false
                 for _, t in ipairs(slotTypes) do
@@ -125,7 +131,8 @@ function ItemEvaluator:GetEquippedItemsForSlot(slotId)
                         ilvl = ilvl,
                         totalRating = totalRating,
                         equipType = equipType,
-                        isEquipped = true
+                        isEquipped = true,
+                        setID = setID
                     })
                 end
             end
@@ -225,3 +232,145 @@ function ItemEvaluator:GetResultingStats(combination, currentStats, ratingPerPer
     
     return resulting
 end
+
+-- Find all unique sets in bags and equipped slots
+function ItemEvaluator:GetAvailableSets()
+    local sets = {}
+    local GetItemInfo = C_Item and C_Item.GetItemInfo or _G.GetItemInfo
+    local GetItemSetInfo = C_Item and C_Item.GetItemSetInfo or _G.GetItemSetInfo
+    
+    -- Scan equipped items
+    for slotId = 1, 19 do
+        local itemLink = GetInventoryItemLink("player", slotId)
+        if itemLink then
+            local itemID = C_Item.GetItemInfoInstant(itemLink)
+            local _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, setID = GetItemInfo(itemID or itemLink)
+            if setID and setID > 0 then
+                sets[setID] = itemLink
+            end
+        end
+    end
+    
+    -- Scan bags
+    for bag = 0, 4 do
+        local numSlots = C_Container.GetContainerNumSlots(bag)
+        if numSlots then
+            for slot = 1, numSlots do
+                local itemLink = C_Container.GetContainerItemLink(bag, slot)
+                if itemLink then
+                    local itemID = C_Item.GetItemInfoInstant(itemLink)
+                    local _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, setID = GetItemInfo(itemID or itemLink)
+                    if setID and setID > 0 then
+                        sets[setID] = itemLink
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Convert to list with names
+    local result = {}
+    self.setMaxCache = self.setMaxCache or {}
+    
+    for setID, sampleLink in pairs(sets) do
+        local setName, setTexture = GetItemSetInfo(setID)
+        
+        local maxItems = self.setMaxCache[setID]
+        if not maxItems and sampleLink then
+            maxItems = self:GetItemSetMax(sampleLink)
+            if maxItems then
+                self.setMaxCache[setID] = maxItems
+            end
+        end
+        
+        table.insert(result, {
+            id = setID,
+            name = setName or ("Set " .. tostring(setID)),
+            texture = setTexture,
+            maxItems = maxItems or 5
+        })
+    end
+    
+    table.sort(result, function(a, b)
+        return a.name < b.name
+    end)
+    
+    return result
+end
+
+-- Get counts of owned items for each set
+function ItemEvaluator:GetOwnedSetCounts()
+    local counts = {}
+    local GetItemInfo = C_Item and C_Item.GetItemInfo or _G.GetItemInfo
+    
+    -- Equipped
+    for slotId = 1, 19 do
+        local itemLink = GetInventoryItemLink("player", slotId)
+        if itemLink then
+            local itemID = C_Item.GetItemInfoInstant(itemLink)
+            local _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, setID = GetItemInfo(itemID or itemLink)
+            if setID and setID > 0 then
+                counts[setID] = (counts[setID] or 0) + 1
+            end
+        end
+    end
+    
+    -- Bags
+    for bag = 0, 4 do
+        local numSlots = C_Container.GetContainerNumSlots(bag)
+        if numSlots then
+            for slot = 1, numSlots do
+                local itemLink = C_Container.GetContainerItemLink(bag, slot)
+                if itemLink then
+                    local itemID = C_Item.GetItemInfoInstant(itemLink)
+                    local _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, setID = GetItemInfo(itemID or itemLink)
+                    if setID and setID > 0 then
+                        counts[setID] = (counts[setID] or 0) + 1
+                    end
+                end
+            end
+        end
+    end
+    return counts
+end
+
+-- Scan tooltip to find maximum number of items in a set
+function ItemEvaluator:GetItemSetMax(itemLink)
+    -- Try C_TooltipInfo first (modern Retail/Classic)
+    if C_TooltipInfo and C_TooltipInfo.GetHyperlink then
+        local tooltipData = C_TooltipInfo.GetHyperlink(itemLink)
+        if tooltipData and tooltipData.lines then
+            for i = 1, #tooltipData.lines do
+                local line = tooltipData.lines[i]
+                if line and line.leftText then
+                    local _, maxVal = string.match(line.leftText, "%((%d+)%s*/%s*(%d+)%)")
+                    if maxVal then
+                        return tonumber(maxVal)
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Fallback to hidden tooltip scanner (older WoW / Classic fallback)
+    if not self.tooltipScanner then
+        self.tooltipScanner = CreateFrame("GameTooltip", "EquipOptimizerTooltipScanner", nil, "GameTooltipTemplate")
+        self.tooltipScanner:SetOwner(UIParent, "ANCHOR_NONE")
+    end
+    self.tooltipScanner:ClearLines()
+    self.tooltipScanner:SetHyperlink(itemLink)
+    for i = 1, self.tooltipScanner:NumLines() do
+        local fontString = _G["EquipOptimizerTooltipScannerTextLeft" .. i]
+        local text = fontString and fontString:GetText()
+        if text then
+            local _, maxVal = string.match(text, "%((%d+)%s*/%s*(%d+)%)")
+            if maxVal then
+                return tonumber(maxVal)
+            end
+        end
+    end
+    
+    return nil
+end
+
+

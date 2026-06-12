@@ -83,12 +83,23 @@ function UI:OpenDropdownMenu(anchor, options, selectedValue, onSelect)
     
     local sorted = {}
     for k, v in pairs(options) do
-        table.insert(sorted, { key = k, val = v })
+        if type(v) == "table" then
+            table.insert(sorted, { key = k, val = v.text, tooltipData = v.tooltipData })
+        else
+            table.insert(sorted, { key = k, val = v })
+        end
     end
     
     table.sort(sorted, function(a, b)
         if a.key == "equipped" then return true end
         if b.key == "equipped" then return false end
+        if a.key == 0 or a.key == "none" then return true end
+        if b.key == 0 or b.key == "none" then return false end
+        local numA = tonumber(a.key)
+        local numB = tonumber(b.key)
+        if numA and numB then
+            return numA < numB
+        end
         return tostring(a.val) < tostring(b.val)
     end)
     
@@ -114,10 +125,21 @@ function UI:OpenDropdownMenu(anchor, options, selectedValue, onSelect)
         btn:GetFontString():SetPoint("LEFT", btn, "LEFT", 5, 0)
         btn:Show()
         
-        if item.key and tostring(item.key):find("|Hitem:") then
+        if item.tooltipData or (item.key and tostring(item.key):find("|Hitem:")) then
             btn:SetScript("OnEnter", function(selfTip)
                 GameTooltip:SetOwner(selfTip, "ANCHOR_RIGHT")
-                GameTooltip:SetHyperlink(item.key)
+                local td = item.tooltipData
+                if td then
+                    if td.isEquipped and td.slotId then
+                        GameTooltip:SetInventoryItem("player", td.slotId)
+                    elseif not td.isEquipped and td.bag and td.slot then
+                        GameTooltip:SetBagItem(td.bag, td.slot)
+                    else
+                        GameTooltip:SetHyperlink(item.key)
+                    end
+                else
+                    GameTooltip:SetHyperlink(item.key)
+                end
                 GameTooltip:Show()
             end)
             btn:SetScript("OnLeave", function()

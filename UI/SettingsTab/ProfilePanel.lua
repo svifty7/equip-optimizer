@@ -85,7 +85,8 @@ function UI:DrawProfilePanel(settingsContainer)
                     { stat = "STAT_CRIT", enabled = true, op = "MAX", value = 0 },
                     { stat = "STAT_MASTERY", enabled = true, op = "MAX", value = 0 },
                 },
-                lockedSlots = {}
+                lockedSlots = {},
+                requiredSets = {}
             }
             local specKey = Core:GetSpecConfigKey()
             Core.db.char.activeProfileBySpec[specKey] = text

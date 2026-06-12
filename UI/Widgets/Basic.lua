@@ -26,10 +26,10 @@ end
 
 function UI:CreateScrollFrame(parent, width, height)
     local scrollFrame = CreateFrame("ScrollFrame", nil, parent, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetSize(width - 25, height)
+    scrollFrame:SetSize(width - 38, height)
     
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
-    scrollChild:SetSize(width - 25, 1)
+    scrollChild:SetSize(width - 38, 1)
     scrollFrame:SetScrollChild(scrollChild)
     
     return scrollFrame, scrollChild

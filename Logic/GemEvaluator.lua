@@ -251,10 +251,15 @@ function ItemEvaluator:GetSocketRecommendations()
         return a.id > b.id
     end)
     
-    local function addSocketInfo(list, slotInfo, link)
+    local function addSocketInfo(list, slotInfo, link, extraInfo)
         local info = self:ParseItemSockets(link)
         if info then
             info.slotId, info.slotName, info.slotLabel, info.link = slotInfo.id, slotInfo.name, slotInfo.label, link
+            if extraInfo then
+                info.bag = extraInfo.bag
+                info.slot = extraInfo.slot
+                info.equippedSlot = extraInfo.equippedSlot
+            end
             table.insert(list, info)
         end
     end
@@ -264,7 +269,7 @@ function ItemEvaluator:GetSocketRecommendations()
     for _, slotInfo in ipairs(Core.Slots) do
         local itemLink = GetInventoryItemLink("player", slotInfo.id)
         if itemLink then
-            addSocketInfo(equippedSockets, slotInfo, itemLink)
+            addSocketInfo(equippedSockets, slotInfo, itemLink, { equippedSlot = slotInfo.id })
         end
     end
     
@@ -274,7 +279,11 @@ function ItemEvaluator:GetSocketRecommendations()
     for _, slotInfo in ipairs(Core.Slots) do
         local rec = recommendations[slotInfo.id]
         if rec and rec.recommendedLink then
-            addSocketInfo(recommendedSockets, slotInfo, rec.recommendedLink)
+            addSocketInfo(recommendedSockets, slotInfo, rec.recommendedLink, {
+                bag = rec.bag,
+                slot = rec.slot,
+                equippedSlot = rec.equippedSlot
+            })
         end
     end
     

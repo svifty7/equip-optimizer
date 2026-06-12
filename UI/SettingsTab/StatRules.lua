@@ -7,7 +7,7 @@ local UI = addonTable.UI
 
 function UI:DrawStatRules(settingsContainer, profilePanel)
     local rightColumn = self:CreateBackdropFrame(settingsContainer, L.RULES or "Stat Rules")
-    rightColumn:SetSize(400, 350)
+    rightColumn:SetSize(400, 355)
     rightColumn:SetPoint("TOPLEFT", profilePanel, "BOTTOMLEFT", 410, -15)
     
     local helpBtn = CreateFrame("Button", nil, rightColumn)
@@ -34,8 +34,8 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
         GameTooltip:Hide()
     end)
     
-    local rightScroll, rightChild = self:CreateScrollFrame(rightColumn, 400, 310)
-    rightScroll:SetPoint("TOPLEFT", rightColumn, "TOPLEFT", 10, -30)
+    local rightScroll, rightChild = self:CreateScrollFrame(rightColumn, 400, 331)
+    rightScroll:SetPoint("TOPLEFT", rightColumn, "TOPLEFT", 10, -12)
     
     local function RefreshRulesList()
         local children = { rightChild:GetChildren() }
@@ -289,4 +289,5 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
     end
     
     RefreshRulesList()
+    return rightColumn
 end

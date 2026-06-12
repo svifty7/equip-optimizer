@@ -35,6 +35,9 @@ function Core:ValidateAndMigrateProfile()
     if not profile.lockedSlots then
         profile.lockedSlots = {}
     end
+    if not profile.requiredSets then
+        profile.requiredSets = {}
+    end
     if profile.gemQuality == nil or profile.gemQuality > 2 then
         profile.gemQuality = 2
     end
@@ -157,7 +160,8 @@ function Core:UpdateProfile()
                 { stat = "STAT_AVOIDANCE", enabled = false, op = "MAX", value = 0 },
                 { stat = "STAT_SPEED", enabled = false, op = "MAX", value = 0 },
             },
-            lockedSlots = {}
+            lockedSlots = {},
+            requiredSets = {}
         }
     end
     

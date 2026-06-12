@@ -54,7 +54,9 @@ function ItemEvaluator:Optimize()
         if itemLink then
             local ratings = self:GetItemRatings(itemLink)
             local ilvl = C_Item.GetDetailedItemLevelInfo(itemLink) or 0
-            local _, _, _, _, _, _, _, _, equipType = C_Item.GetItemInfo(itemLink)
+            local GetItemInfo = C_Item and C_Item.GetItemInfo or _G.GetItemInfo
+            local itemID = C_Item.GetItemInfoInstant(itemLink)
+            local _, _, _, _, _, _, _, _, equipType, _, _, _, _, _, _, setID = GetItemInfo(itemID or itemLink)
             
             eqItem = {
                 link = itemLink,
@@ -62,7 +64,8 @@ function ItemEvaluator:Optimize()
                 ilvl = ilvl,
                 equipType = equipType,
                 isEquipped = true,
-                slotId = slotId
+                slotId = slotId,
+                setID = setID
             }
             self.equipped[slotId] = eqItem
         else
@@ -90,10 +93,18 @@ function ItemEvaluator:Optimize()
                 if a.ilvl ~= b.ilvl then
                     return a.ilvl > b.ilvl
                 end
+                for _, rule in ipairs(activeRules) do
+                    local valA = a.ratings[rule.stat] or 0
+                    local valB = b.ratings[rule.stat] or 0
+                    if valA ~= valB then
+                        -- For both MAX and >= rules, higher stats are better
+                        return valA > valB
+                    end
+                end
                 return a.totalRating > b.totalRating
             end)
             
-            local limit = (slotId == 11 or slotId == 12 or slotId == 13 or slotId == 14 or slotId == 16 or slotId == 17) and 4 or 2
+            local limit = (slotId == 11 or slotId == 12 or slotId == 13 or slotId == 14 or slotId == 16 or slotId == 17) and 8 or 6
             
             local maxIlvl = eqItem.ilvl
             if #bagItems > 0 and bagItems[1].ilvl > maxIlvl then
@@ -168,10 +179,24 @@ function ItemEvaluator:Optimize()
     end
     
     if totalCombinations > 5000 then
-        -- Prune candidates to top 1 bag item per slot
-        for _, slotId in ipairs(optimizableSlots) do
-            if #candidates[slotId] > 2 then
-                candidates[slotId] = { candidates[slotId][1], candidates[slotId][2] }
+        -- Gradual pruning to ensure we don't exceed 5000 combinations
+        while totalCombinations > 5000 do
+            local maxSlotId = nil
+            local maxCount = 2 -- Don't prune below 2 candidates (1 equipped + 1 bag item)
+            for _, slotId in ipairs(optimizableSlots) do
+                if #candidates[slotId] > maxCount then
+                    maxCount = #candidates[slotId]
+                    maxSlotId = slotId
+                end
+            end
+            if not maxSlotId then
+                break
+            end
+            table.remove(candidates[maxSlotId])
+            -- Recalculate totalCombinations
+            totalCombinations = 1
+            for _, slotId in ipairs(optimizableSlots) do
+                totalCombinations = totalCombinations * #candidates[slotId]
             end
         end
     end
@@ -189,6 +214,40 @@ function ItemEvaluator:Optimize()
                 if offHand ~= candidates[17][1] then
                     return
                 end
+            end
+            
+            -- Validate set requirements
+            local setCounts = {}
+            for slotId, itemInfo in pairs(currentComb) do
+                local actualItem = itemInfo
+                local mainHandItem = currentComb[16]
+                if slotId == 17 and mainHandItem and mainHandItem.equipType == "INVTYPE_2HWEAPON" then
+                    actualItem = nil
+                end
+                
+                if actualItem and actualItem.link then
+                    local setID = actualItem.setID
+                    if setID and setID > 0 then
+                        setCounts[setID] = (setCounts[setID] or 0) + 1
+                    end
+                end
+            end
+            
+            local satisfiesSets = true
+            if profile.requiredSets then
+                for reqSetID, reqCount in pairs(profile.requiredSets) do
+                    if reqCount and reqCount > 0 then
+                        local currentCount = setCounts[reqSetID] or 0
+                        if currentCount < reqCount then
+                            satisfiesSets = false
+                            break
+                        end
+                    end
+                end
+            end
+            
+            if not satisfiesSets then
+                return
             end
             
             -- Compute stats

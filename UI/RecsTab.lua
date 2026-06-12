@@ -15,7 +15,7 @@ function UI:DrawRecs()
     title:SetPoint("TOPLEFT", recsContainer, "TOPLEFT", 10, -10)
     title:SetText(L.RECOMMENDATIONS or "Recommendations")
     
-    local recsScroll, recsChild = self:CreateScrollFrame(recsContainer, 810, 250)
+    local recsScroll, recsChild = self:CreateScrollFrame(recsContainer, 803, 250)
     recsScroll:SetPoint("TOPLEFT", recsContainer, "TOPLEFT", 10, -40)
     
     local offsetY = 0
@@ -69,21 +69,29 @@ function UI:DrawRecs()
             lblDiff:SetWidth(80)
             lblDiff:SetJustifyH("RIGHT")
             
-            local function CreateTooltipArea(strString, itemLink)
+            local function CreateTooltipArea(strString, itemLink, isCurrent)
                 if not itemLink then return end
                 local frameTip = CreateFrame("Button", nil, row)
                 frameTip:SetAllPoints(strString)
                 frameTip:SetScript("OnEnter", function(selfTip)
                     GameTooltip:SetOwner(selfTip, "ANCHOR_RIGHT")
-                    GameTooltip:SetHyperlink(itemLink)
+                    if isCurrent then
+                        GameTooltip:SetInventoryItem("player", slotId)
+                    elseif rec.equippedSlot then
+                        GameTooltip:SetInventoryItem("player", rec.equippedSlot)
+                    elseif rec.bag and rec.slot then
+                        GameTooltip:SetBagItem(rec.bag, rec.slot)
+                    else
+                        GameTooltip:SetHyperlink(itemLink)
+                    end
                     GameTooltip:Show()
                 end)
                 frameTip:SetScript("OnLeave", function()
                     GameTooltip:Hide()
                 end)
             end
-            CreateTooltipArea(lblCurrent, rec.currentLink)
-            CreateTooltipArea(lblRec, rec.recommendedLink)
+            CreateTooltipArea(lblCurrent, rec.currentLink, true)
+            CreateTooltipArea(lblRec, rec.recommendedLink, false)
             
             offsetY = offsetY + 28
         end
@@ -259,6 +267,9 @@ function UI:DrawRecs()
         if InCombatLockdown() then
             self:SetButtonDisabled(equipBtn, true)
             equipBtn.text:SetText(L.IN_COMBAT or "In Combat")
+        elseif ItemEvaluator:IsEquipQueueActive() then
+            self:SetButtonDisabled(equipBtn, true)
+            equipBtn.text:SetText(L.EQUIPPING or "Equipping...")
         else
             local hasRecs = false
             for _ in pairs(recs) do
@@ -273,5 +284,6 @@ function UI:DrawRecs()
     UpdateButtonState()
     equipBtn:SetScript("OnClick", function()
         ItemEvaluator:EquipRecommended(recs)
+        UpdateButtonState()
     end)
 end

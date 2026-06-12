@@ -37,6 +37,27 @@ local function SetupTooltip(btn, link)
     end)
 end
 
+local function SetupItemTooltip(btn, link, item)
+    btn:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        if item then
+            if item.equippedSlot then
+                GameTooltip:SetInventoryItem("player", item.equippedSlot)
+            elseif item.bag and item.slot then
+                GameTooltip:SetBagItem(item.bag, item.slot)
+            else
+                GameTooltip:SetHyperlink(link)
+            end
+        else
+            GameTooltip:SetHyperlink(link)
+        end
+        GameTooltip:Show()
+    end)
+    btn:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+end
+
 function UI:DrawGems()
     local gemsContainer = self.mainWindow.gemsContainer
     self:ClearContainer(gemsContainer)
@@ -49,9 +70,16 @@ function UI:DrawGems()
     local qualityDropdown = self:CreateDropdown(gemsContainer, 160, L.GEM_QUALITY or "Качество камней")
     qualityDropdown:SetPoint("TOPRIGHT", gemsContainer, "TOPRIGHT", -10, -10)
     
+    local function GetRankTextWithIcon(rank)
+        local baseText = L["GEM_RANK_" .. rank] or ("Rank " .. rank)
+        -- Rare gems use chat quality icons for 2-tier items: 12-tier1 (silver diamond) and 12-tier2 (gold pentagon)
+        local atlasName = "professions-chaticon-quality-12-tier" .. rank
+        return string.format("%s |A:%s:16:16:0:0|a", baseText, atlasName)
+    end
+    
     local options = {
-        [1] = L.GEM_RANK_1 or "Rank 1 (Бронза)",
-        [2] = L.GEM_RANK_2 or "Rank 2 (Серебро)",
+        [1] = GetRankTextWithIcon(1),
+        [2] = GetRankTextWithIcon(2),
     }
     local chosenQuality = Core.activeProfile.gemQuality or 2
     qualityDropdown.text:SetText(options[chosenQuality] or options[2])
@@ -118,8 +146,8 @@ function UI:DrawGems()
     leftPanel:SetSize(390, 440)
     leftPanel:SetPoint("TOPLEFT", gemsContainer, "TOPLEFT", 0, -55)
     
-    local leftScroll, leftChild = self:CreateScrollFrame(leftPanel, 390, 395)
-    leftScroll:SetPoint("TOPLEFT", leftPanel, "TOPLEFT", 10, -35)
+    local leftScroll, leftChild = self:CreateScrollFrame(leftPanel, 390, 416)
+    leftScroll:SetPoint("TOPLEFT", leftPanel, "TOPLEFT", 10, -12)
     
     local leftOffsetY = 0
     for _, g in ipairs(gems) do
@@ -202,16 +230,16 @@ function UI:DrawGems()
     equippedPanel:SetSize(400, 215)
     equippedPanel:SetPoint("TOPLEFT", gemsContainer, "TOPLEFT", 410, -55)
     
-    local equippedScroll, equippedChild = self:CreateScrollFrame(equippedPanel, 400, 170)
-    equippedScroll:SetPoint("TOPLEFT", equippedPanel, "TOPLEFT", 10, -35)
+    local equippedScroll, equippedChild = self:CreateScrollFrame(equippedPanel, 400, 191)
+    equippedScroll:SetPoint("TOPLEFT", equippedPanel, "TOPLEFT", 10, -12)
     
     -- 3. Recommended Gear Panel (Bottom-Right)
     local recommendedPanel = self:CreateBackdropFrame(gemsContainer, L.GEMS_RECOMMENDED_TITLE or "Recommended Gear")
     recommendedPanel:SetSize(400, 215)
     recommendedPanel:SetPoint("TOPLEFT", gemsContainer, "TOPLEFT", 410, -280)
     
-    local recommendedScroll, recommendedChild = self:CreateScrollFrame(recommendedPanel, 400, 170)
-    recommendedScroll:SetPoint("TOPLEFT", recommendedPanel, "TOPLEFT", 10, -35)
+    local recommendedScroll, recommendedChild = self:CreateScrollFrame(recommendedPanel, 400, 191)
+    recommendedScroll:SetPoint("TOPLEFT", recommendedPanel, "TOPLEFT", 10, -12)
     
     -- Track unique gems already equipped to avoid recommending duplicate uniques
     local function ScanUniques(itemsList)
@@ -314,13 +342,13 @@ function UI:DrawGems()
             
             local frameTip = CreateFrame("Button", nil, itemRow)
             frameTip:SetAllPoints(lblItem)
-            SetupTooltip(frameTip, item.link)
+            SetupItemTooltip(frameTip, item.link, item)
             
             local itemOffsetY = 22
             
             for i = 1, item.totalSockets do
                 local socketRow = CreateFrame("Frame", nil, itemRow)
-                socketRow:SetSize(350, 24)
+                socketRow:SetSize(360, 24)
                 socketRow:SetPoint("TOPLEFT", itemRow, "TOPLEFT", 15, -itemOffsetY)
                 
                 local lblSocketIdx = socketRow:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")

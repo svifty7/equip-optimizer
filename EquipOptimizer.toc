@@ -42,6 +42,7 @@ UI\Minimap.lua
 UI\SettingsTab\ProfilePanel.lua
 UI\SettingsTab\ReservedSlots.lua
 UI\SettingsTab\StatRules.lua
+UI\SettingsTab\SetRequirements.lua
 UI\SettingsTab.lua
 UI\RecsTab.lua
 UI\GemsTab.lua

@@ -7,18 +7,18 @@ local UI = addonTable.UI
 
 function UI:DrawReservedSlots(settingsContainer, profilePanel)
     local leftColumn = self:CreateBackdropFrame(settingsContainer, L.SLOT_LOCKS or "Reserved Slots")
-    leftColumn:SetSize(395, 350)
+    leftColumn:SetSize(395, 200)
     leftColumn:SetPoint("TOPLEFT", profilePanel, "BOTTOMLEFT", 0, -15)
     
-    local leftScroll, leftChild = self:CreateScrollFrame(leftColumn, 395, 310)
-    leftScroll:SetPoint("TOPLEFT", leftColumn, "TOPLEFT", 10, -30)
+    local leftScroll, leftChild = self:CreateScrollFrame(leftColumn, 395, 176)
+    leftScroll:SetPoint("TOPLEFT", leftColumn, "TOPLEFT", 10, -12)
     
     local offsetY = 0
     for _, slotInfo in ipairs(Core.Slots) do
         local slotId = slotInfo.id
         
         local row = CreateFrame("Frame", nil, leftChild)
-        row:SetSize(360, 26)
+        row:SetSize(355, 26)
         row:SetPoint("TOPLEFT", leftChild, "TOPLEFT", 0, -offsetY)
         
         local cb = CreateFrame("CheckButton", nil, row, "InterfaceOptionsCheckButtonTemplate")
@@ -28,7 +28,7 @@ function UI:DrawReservedSlots(settingsContainer, profilePanel)
         cb:SetChecked(Core.activeProfile.lockedSlots[slotId] ~= nil)
         
         local ddBtn = self:CreateDropdown(row, 200, "")
-        ddBtn:SetPoint("LEFT", row, "LEFT", 150, 0)
+        ddBtn:SetPoint("LEFT", row, "LEFT", 155, 0)
         
         local function UpdateDropdownState()
             local lockVal = Core.activeProfile.lockedSlots[slotId]
@@ -70,12 +70,25 @@ function UI:DrawReservedSlots(settingsContainer, profilePanel)
             
             local equippedItems = ItemEvaluator:GetEquippedItemsForSlot(slotId)
             for _, item in ipairs(equippedItems) do
-                list[item.link] = item.link
+                list[item.link] = {
+                    text = item.link,
+                    tooltipData = {
+                        isEquipped = true,
+                        slotId = item.slotId
+                    }
+                }
             end
             
             local bagItems = ItemEvaluator:GetBagItemsForSlot(slotId)
             for _, item in ipairs(bagItems) do
-                list[item.link] = item.link
+                list[item.link] = {
+                    text = item.link,
+                    tooltipData = {
+                        isEquipped = false,
+                        bag = item.bag,
+                        slot = item.slot
+                    }
+                }
             end
             
             local lockVal = Core.activeProfile.lockedSlots[slotId] or "equipped"
@@ -92,4 +105,5 @@ function UI:DrawReservedSlots(settingsContainer, profilePanel)
         offsetY = offsetY + 28
     end
     leftChild:SetHeight(offsetY)
+    return leftColumn
 end

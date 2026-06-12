@@ -188,6 +188,8 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
         if unit ~= "player" then return end
     end
     if UI:IsWindowOpen() then
-        UI:Refresh()
+        if not ItemEvaluator:IsEquipQueueActive() then
+            UI:Refresh()
+        end
     end
 end)
