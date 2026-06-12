@@ -1,0 +1,31 @@
+## Interface: 120005
+## Title: EquipOptimizer
+## Title-ruRU: EquipOptimizer
+## Notes: Optimizes your gear based on custom stat rules and priorities.
+## Notes-ruRU: Оптимизирует вашу экипировку на основе пользовательских правил и приоритетов характеристик.
+## Author: svifty7 & Antigravity
+## Version: 1.0.0
+## SavedVariables: EquipOptimizerDB
+## OptionalDeps: ElvUI
+
+# Libraries
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\AceAddon-3.0\AceAddon-3.0.xml
+Libs\AceEvent-3.0\AceEvent-3.0.xml
+Libs\AceDB-3.0\AceDB-3.0.xml
+Libs\AceConsole-3.0\AceConsole-3.0.xml
+Libs\AceGUI-3.0\AceGUI-3.0.xml
+
+# Localization
+Localization.lua
+
+# Core & Logic
+Core.lua
+ItemEvaluator.lua
+
+# User Interface
+UI.lua
+
+# Theme Skinning
+ElvUI_Skin.lua
