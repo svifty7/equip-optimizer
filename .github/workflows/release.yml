@@ -38,6 +38,7 @@ jobs:
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git tag "$TAG"
             git push origin "$TAG"
+            echo "GITHUB_REF=refs/tags/$TAG" >> $GITHUB_ENV
           fi
 
       - name: Package WoW Addon
