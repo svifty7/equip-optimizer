@@ -40,7 +40,7 @@ function Core:CreateMinimapButton()
     
     -- Dragging handlers
     MinimapButton:RegisterForDrag("LeftButton")
-    MinimapButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    MinimapButton:RegisterForClicks("LeftButtonUp")
     
     MinimapButton:SetScript("OnDragStart", function(selfBtn)
         selfBtn.isDragging = true
@@ -64,19 +64,13 @@ function Core:CreateMinimapButton()
     end)
     
     MinimapButton:SetScript("OnClick", function(selfBtn, button)
-        if button == "RightButton" then
-            local recs = ItemEvaluator:Optimize()
-            ItemEvaluator:EquipRecommended(recs)
-        else
-            Core:ToggleWindow()
-        end
+        Core:ToggleWindow()
     end)
     
     MinimapButton:SetScript("OnEnter", function(selfBtn)
         GameTooltip:SetOwner(selfBtn, "ANCHOR_LEFT")
         GameTooltip:AddLine("EquipOptimizer")
         GameTooltip:AddLine(L.MINIMAP_TOOLTIP_LEFT or "ЛКМ: Открыть настройки", 1, 1, 1)
-        GameTooltip:AddLine(L.MINIMAP_TOOLTIP_RIGHT or "ПКМ: Надеть лучшее снаряжение", 1, 1, 1)
         GameTooltip:Show()
     end)
     

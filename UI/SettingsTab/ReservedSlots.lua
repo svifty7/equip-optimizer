@@ -58,10 +58,7 @@ function UI:DrawReservedSlots(settingsContainer, profilePanel)
                 Core.activeProfile.lockedSlots[slotId] = nil
             end
             UpdateDropdownState()
-            ItemEvaluator:StartOptimize(true)
-            if self:IsWindowOpen() and self.mainWindow.selectedTab == "recs" then
-                self:Refresh()
-            end
+            self:OnSettingsChanged()
         end)
         
         ddBtn:SetScript("OnClick", function()
@@ -95,10 +92,7 @@ function UI:DrawReservedSlots(settingsContainer, profilePanel)
             self:OpenDropdownMenu(ddBtn, list, lockVal, function(key)
                 Core.activeProfile.lockedSlots[slotId] = key
                 UpdateDropdownState()
-                ItemEvaluator:StartOptimize(true)
-                if self:IsWindowOpen() and self.mainWindow.selectedTab == "recs" then
-                    self:Refresh()
-                end
+                self:OnSettingsChanged()
             end)
         end)
         

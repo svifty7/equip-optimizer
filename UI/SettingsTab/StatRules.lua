@@ -205,10 +205,7 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                 cb:SetScript("OnClick", function(selfCb)
                     rule.enabled = selfCb:GetChecked()
                     UpdateRowState()
-                    ItemEvaluator:StartOptimize(true)
-                    if self:IsWindowOpen() and self.mainWindow.selectedTab == "recs" then
-                        self:Refresh()
-                    end
+                    self:OnSettingsChanged()
                 end)
                 
                 ddOp:SetScript("OnClick", function()
@@ -220,27 +217,18 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                         rule.op = key
                         ddOp.text:SetText(key)
                         UpdateValueState()
-                        ItemEvaluator:StartOptimize(true)
-                        if self:IsWindowOpen() and self.mainWindow.selectedTab == "recs" then
-                            self:Refresh()
-                        end
+                        self:OnSettingsChanged()
                     end)
                 end)
                 
                 valEB:SetScript("OnEnterPressed", function(selfEb)
                     rule.value = tonumber(selfEb:GetText()) or 0
                     selfEb:ClearFocus()
-                    ItemEvaluator:StartOptimize(true)
-                    if self:IsWindowOpen() and self.mainWindow.selectedTab == "recs" then
-                        self:Refresh()
-                    end
+                    self:OnSettingsChanged()
                 end)
                 valEB:SetScript("OnEditFocusLost", function(selfEb)
                     rule.value = tonumber(selfEb:GetText()) or 0
-                    ItemEvaluator:StartOptimize(true)
-                    if self:IsWindowOpen() and self.mainWindow.selectedTab == "recs" then
-                        self:Refresh()
-                    end
+                    self:OnSettingsChanged()
                 end)
                 
                 btnUp:SetScript("OnClick", function()
@@ -248,7 +236,7 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                     rules[idx] = rules[idx-1]
                     rules[idx-1] = tmp
                     RefreshRulesList()
-                    ItemEvaluator:StartOptimize(true)
+                    self:OnSettingsChanged()
                 end)
                 
                 btnDown:SetScript("OnClick", function()
@@ -256,7 +244,7 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                     rules[idx] = rules[idx+1]
                     rules[idx+1] = tmp
                     RefreshRulesList()
-                    ItemEvaluator:StartOptimize(true)
+                    self:OnSettingsChanged()
                 end)
                 
                 yOffset = yOffset + 30

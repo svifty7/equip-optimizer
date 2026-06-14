@@ -3,9 +3,14 @@ local _, addonTable = ...
 local L = addonTable.L
 local Core = addonTable.Core
 local UI = addonTable.UI
+local ItemEvaluator = addonTable.ItemEvaluator
 
 local mainWindow = nil
 UI.mainWindow = nil
+
+function UI:OnSettingsChanged()
+    ItemEvaluator.hasOptimizationRun = false
+end
 
 function UI:IsWindowOpen()
     return mainWindow ~= nil and mainWindow:IsShown()
@@ -98,13 +103,13 @@ function UI:CreateMainWindow()
     local tabRecs = self:CreateStyledButton(mainWindow, 140, 26, L.RECOMMENDATIONS or "Recommendations")
     tabRecs:SetPoint("TOPLEFT", mainWindow, "TOPLEFT", 15, -45)
     
-    local tabSettings = self:CreateStyledButton(mainWindow, 140, 26, L.SETTINGS or "Settings")
-    tabSettings:SetPoint("LEFT", tabRecs, "RIGHT", 5, 0)
-    
     -- Gems tab button
     local tabGems = self:CreateStyledButton(mainWindow, 140, 26, L.GEMS or "Gems")
-    tabGems:SetPoint("LEFT", tabSettings, "RIGHT", 5, 0)
+    tabGems:SetPoint("LEFT", tabRecs, "RIGHT", 5, 0)
     UI.tabGemsBtn = tabGems
+    
+    local tabSettings = self:CreateStyledButton(mainWindow, 140, 26, L.SETTINGS or "Settings")
+    tabSettings:SetPoint("LEFT", tabGems, "RIGHT", 5, 0)
     
     local recsContainer = CreateFrame("Frame", nil, mainWindow)
     recsContainer:SetSize(810, 510)
@@ -149,6 +154,9 @@ function UI:CreateMainWindow()
         gemsContainer:SetShown(tabName == "gems")
         
         if tabName == "recs" then
+            if not ItemEvaluator.hasOptimizationRun and not ItemEvaluator.isOptimizing then
+                ItemEvaluator:StartOptimize(true)
+            end
             UI:DrawRecs()
         elseif tabName == "gems" and UI.DrawGems then
             UI:DrawGems()
@@ -172,7 +180,6 @@ function UI:CreateMainWindow()
         end
     end
 end
-
 -- Event monitoring frame for auto-refresh and combat check
 local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
@@ -185,8 +192,12 @@ eventFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 eventFrame:SetScript("OnEvent", function(_, event, ...)
     if UI:IsWindowOpen() then
         if not ItemEvaluator:IsEquipQueueActive() then
-            ItemEvaluator:StartOptimize()
-            UI:Refresh()
+            if mainWindow.selectedTab == "recs" then
+                ItemEvaluator:StartOptimize()
+                UI:Refresh()
+            else
+                ItemEvaluator.hasOptimizationRun = false
+            end
         end
     end
 end)

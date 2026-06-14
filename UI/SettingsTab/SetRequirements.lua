@@ -74,10 +74,7 @@ function UI:DrawSetRequirements(settingsContainer, leftColumn)
                     end
                     UpdateDropdownText()
                     
-                    ItemEvaluator:StartOptimize(true)
-                    if self:IsWindowOpen() and self.mainWindow.selectedTab == "recs" then
-                        self:Refresh()
-                    end
+                    self:OnSettingsChanged()
                 end)
             end)
             

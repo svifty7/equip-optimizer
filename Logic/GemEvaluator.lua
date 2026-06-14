@@ -280,7 +280,7 @@ function ItemEvaluator:GetSocketRecommendations()
     
     -- 3. Inspect recommended items for sockets
     local recommendedSockets = {}
-    local recommendations = self:Optimize()
+    local recommendations = self.lastRecommendations or {}
     for _, slotInfo in ipairs(Core.Slots) do
         local rec = recommendations[slotInfo.id]
         if rec and rec.recommendedLink then
