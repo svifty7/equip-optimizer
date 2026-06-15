@@ -144,39 +144,6 @@ function ItemEvaluator:PopulateBagCandidatesForSlot(slotId, eqItem, profile, act
     end
 end
 
-local function mergeDualSlots(candidates, slotA, slotB, activeRules)
-    local merged = {}
-    local seen = {}
-    for _, cand in ipairs(candidates[slotA]) do
-        if cand.searchKey and not seen[cand.searchKey] then
-            seen[cand.searchKey] = true
-            table.insert(merged, cand)
-        end
-    end
-    for _, cand in ipairs(candidates[slotB]) do
-        if cand.searchKey and not seen[cand.searchKey] then
-            seen[cand.searchKey] = true
-            table.insert(merged, cand)
-        end
-    end
-    
-    table.sort(merged, function(a, b)
-        if a.ilvl ~= b.ilvl then
-            return a.ilvl > b.ilvl
-        end
-        for _, rule in ipairs(activeRules) do
-            local valA = a.ratings[rule.stat] or 0
-            local valB = b.ratings[rule.stat] or 0
-            if valA ~= valB then
-                return valA > valB
-            end
-        end
-        return (a.totalRating or 0) > (b.totalRating or 0)
-    end)
-    
-    candidates[slotA] = merged
-    candidates[slotB] = merged
-end
 
 -- Scan player equipped and bag items to construct potential candidates pool
 function ItemEvaluator:ScanEquippedAndBagCandidates(profile, activeRules, bestGemStats)
@@ -202,12 +169,6 @@ function ItemEvaluator:ScanEquippedAndBagCandidates(profile, activeRules, bestGe
         self:PopulateBagCandidatesForSlot(slotId, eqItem, profile, activeRules, bestGemStats, candidates[slotId])
     end
     
-    if not profile.lockedSlots[11] and not profile.lockedSlots[12] then
-        mergeDualSlots(candidates, 11, 12, activeRules)
-    end
-    if not profile.lockedSlots[13] and not profile.lockedSlots[14] then
-        mergeDualSlots(candidates, 13, 14, activeRules)
-    end
     
     return candidates
 end

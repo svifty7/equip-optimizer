@@ -22,7 +22,9 @@ function ItemEvaluator:CalcStatDeltas(candidatesPool, trackedKeys)
     for slotId, slotCandidates in pairs(candidatesPool) do
         local eqItem = self.equipped[slotId]
         for _, cand in ipairs(slotCandidates) do
-            cand.statDeltas = {}
+            cand.statDeltas = cand.statDeltas or {}
+            cand.statDeltas[slotId] = {}
+            local slotDeltas = cand.statDeltas[slotId]
             local eqRatings = eqItem and eqItem.ratings or {}
             local eqGemsEnchants = eqItem and eqItem.gemsAndEnchants or {}
             local eqPotential = eqItem and eqItem.potentialGemsStats or {}
@@ -36,50 +38,19 @@ function ItemEvaluator:CalcStatDeltas(candidatesPool, trackedKeys)
                     local newVal = (newRatings[k] or 0) + (newGemsEnchants[k] or 0) + (newPotential[k] or 0)
                     local delta = newVal - eqVal
                     if delta ~= 0 then
-                        cand.statDeltas[k] = delta
+                        slotDeltas[k] = delta
                     end
                 end
             end
             local eqIlvl = eqItem and eqItem.ilvl or 0
             local newIlvl = cand.ilvl or 0
             if newIlvl ~= eqIlvl then
-                cand.statDeltas["STAT_ILVL"] = (newIlvl - eqIlvl) / 16
+                slotDeltas["STAT_ILVL"] = (newIlvl - eqIlvl) / 16
             end
         end
     end
 end
 
--- Precalculate maxDelta and suffixMaxDelta
-function ItemEvaluator:CalcBounds(poolOptimizableSlots, candidatesPool, trackedKeys)
-    local maxDelta = {}
-    for i, slotId in ipairs(poolOptimizableSlots) do
-        maxDelta[i] = {}
-        for _, k in ipairs(trackedKeys) do
-            local maxD = 0
-            for _, cand in ipairs(candidatesPool[slotId]) do
-                local d = cand.statDeltas[k] or 0
-                if d > maxD then
-                    maxD = d
-                end
-            end
-            maxDelta[i][k] = maxD
-        end
-    end
-    
-    local suffixMaxDelta = {}
-    for i = 1, #poolOptimizableSlots + 1 do
-        suffixMaxDelta[i] = {}
-        for _, k in ipairs(trackedKeys) do
-            suffixMaxDelta[i][k] = 0
-        end
-    end
-    for i = #poolOptimizableSlots, 1, -1 do
-        for _, k in ipairs(trackedKeys) do
-            suffixMaxDelta[i][k] = suffixMaxDelta[i+1][k] + maxDelta[i][k]
-        end
-    end
-    return suffixMaxDelta
-end
 
 -- Precalculate slotHasSet and suffixMaxSet
 function ItemEvaluator:CalcSetsPruning(poolOptimizableSlots, candidatesPool, adjustedRequiredSets)
@@ -117,7 +88,8 @@ function ItemEvaluator:InitRunningStats(poolCurrentComb, trackedKeys, currentSta
     end
     -- Add deltas of fixed slots
     for slotId, cand in pairs(poolCurrentComb) do
-        for k, delta in pairs(cand.statDeltas or {}) do
+        local deltas = cand.statDeltas and cand.statDeltas[slotId]
+        for k, delta in pairs(deltas or {}) do
             runningStats[k] = runningStats[k] + delta
         end
     end
@@ -197,7 +169,7 @@ function ItemEvaluator:VerifyRequiredSets(poolCurrentComb, adjustedRequiredSets,
 end
 
 -- Evaluate leaf node combination in DFS
-function ItemEvaluator:EvaluateLeaf(poolCurrentComb, candidatesPool, adjustedRequiredSets, trackedKeys, runningStats, activeRules, poolBestCombination)
+function ItemEvaluator:EvaluateLeaf(poolCurrentComb, candidatesPool, adjustedRequiredSets, trackedKeys, runningStats, activeRules, poolBestCombination, seenPairs)
     local mainHand = poolCurrentComb[16]
     if mainHand and mainHand.equipType == "INVTYPE_2HWEAPON" and poolCurrentComb[17] ~= candidatesPool[17][1] then
         return poolBestCombination
@@ -207,6 +179,31 @@ function ItemEvaluator:EvaluateLeaf(poolCurrentComb, candidatesPool, adjustedReq
     if not self:VerifyRequiredSets(poolCurrentComb, adjustedRequiredSets, has2H) then
         return poolBestCombination
     end
+    
+    -- Deduplicate swapped combinations of rings and trinkets correctly
+    local keys = {}
+    for _, slotInfo in ipairs(Core.Slots) do
+        local slotId = slotInfo.id
+        if slotId ~= 11 and slotId ~= 12 and slotId ~= 13 and slotId ~= 14 then
+            table.insert(keys, poolCurrentComb[slotId] and poolCurrentComb[slotId].link or "none")
+        end
+    end
+    
+    local r1 = poolCurrentComb[11] and poolCurrentComb[11].link or "none"
+    local r2 = poolCurrentComb[12] and poolCurrentComb[12].link or "none"
+    if r1 > r2 then r1, r2 = r2, r1 end
+    table.insert(keys, r1)
+    table.insert(keys, r2)
+    
+    local t1 = poolCurrentComb[13] and poolCurrentComb[13].link or "none"
+    local t2 = poolCurrentComb[14] and poolCurrentComb[14].link or "none"
+    if t1 > t2 then t1, t2 = t2, t1 end
+    table.insert(keys, t1)
+    table.insert(keys, t2)
+    
+    local pairKey = table.concat(keys, "|")
+    if seenPairs[pairKey] then return poolBestCombination end
+    seenPairs[pairKey] = true
     
     local score = self:CalculateScore(runningStats, activeRules)
     if not poolBestCombination or score > poolBestCombination.score then

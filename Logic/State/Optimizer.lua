@@ -49,31 +49,7 @@ function ItemEvaluator:CreateOptimizationCoroutine(candidates, currentStats, act
     end
     
     return coroutine.create(function()
-        local pass1Candidates = {}
-        for slotId, slotCandidates in pairs(candidates) do
-            pass1Candidates[slotId] = {}
-            local numToTake = math.min(2, #slotCandidates)
-            for i = 1, numToTake do
-                table.insert(pass1Candidates[slotId], slotCandidates[i])
-            end
-            local eqItem = self.equipped[slotId]
-            local foundEq = false
-            for _, cand in ipairs(pass1Candidates[slotId]) do
-                if cand.link == eqItem.link then
-                    foundEq = true
-                    break
-                end
-            end
-            if not foundEq and eqItem.link then
-                table.insert(pass1Candidates[slotId], eqItem)
-            end
-        end
-        
-        local best = self:PerformSearch(pass1Candidates, currentStats, trackedKeys, activeRules, adjustedRequiredSets, totalCombinations, cleanOffhandDelta, onProgress)
-        local best2 = self:PerformSearch(candidates, currentStats, trackedKeys, activeRules, adjustedRequiredSets, totalCombinations, cleanOffhandDelta, onProgress, best)
-        if best2 then
-            best = best2
-        end
+        local best = self:PerformSearch(candidates, currentStats, trackedKeys, activeRules, adjustedRequiredSets, totalCombinations, cleanOffhandDelta, onProgress)
         
         local recs, finalStats = self:BuildOptimizationRecommendations(best, currentStats, ratingPerPercent)
         self.lastRecommendations = recs
@@ -131,6 +107,14 @@ function ItemEvaluator:StartOptimize(force)
     
     self.eqStats = self:GetEquippedStats()
     local currentStats = self:GetPlayerCurrentStats()
+    
+    for slotId, eqItem in pairs(self.equipped or {}) do
+        if eqItem.potentialGemsStats then
+            for k, v in pairs(eqItem.potentialGemsStats) do
+                currentStats[k] = (currentStats[k] or 0) + v
+            end
+        end
+    end
     
     local optimizableSlots = self:InitOptimizableSlots(candidates)
     local totalCombinations = self:CalculateTotalCombinations(candidates, optimizableSlots)

@@ -4,14 +4,25 @@
 local ItemEvaluator = {}
 
 -- Load helper functions to populate ItemEvaluator mock methods
-local loadHelper = dofile("TestScoringHelper.lua")
+local function loadTestFile(filename)
+    local path = "Tests/" .. filename
+    local file = io.open(path, "r")
+    if file then
+        file:close()
+        return dofile(path)
+    else
+        return dofile(filename)
+    end
+end
+
+local loadHelper = loadTestFile("TestScoringHelper.lua")
 loadHelper(ItemEvaluator)
 
 -- TEST RUNNER
 local function RunTests()
     print("Starting optimization algorithm simulation tests...\n")
     
-    local mockData = dofile("TestScoringMockData.lua")
+    local mockData = loadTestFile("TestScoringMockData.lua")
     local currentStats = mockData.currentStats
     local ratingPerPercent = mockData.ratingPerPercent
     local rules = mockData.rules

@@ -9,22 +9,13 @@ function ItemEvaluator:CheckPruning(optIndex, state)
             return true
         end
     end
-    
-    if state.poolBestCombination then
-        for _, k in ipairs(state.trackedKeys) do
-            state.upperBoundStats[k] = state.runningStats[k] + (state.suffixMaxDelta[optIndex][k] or 0)
-        end
-        local ubScore = self:CalculateScore(state.upperBoundStats, state.activeRules)
-        if ubScore <= state.poolBestCombination.score then
-            return true
-        end
-    end
     return false
 end
 
 function ItemEvaluator:ApplyCandidateDelta(slotId, cand, state, is2H)
+    local deltas = cand.statDeltas and cand.statDeltas[slotId]
     if is2H then
-        for k, v in pairs(cand.statDeltas or {}) do
+        for k, v in pairs(deltas or {}) do
             state.runningStats[k] = state.runningStats[k] + v
         end
         for k, v in pairs(state.cleanOffhandDelta) do
@@ -32,15 +23,16 @@ function ItemEvaluator:ApplyCandidateDelta(slotId, cand, state, is2H)
         end
         state.runningStats["STAT_ILVL"] = state.runningStats["STAT_ILVL"] + cand.ilvl / 16
     else
-        for k, v in pairs(cand.statDeltas or {}) do
+        for k, v in pairs(deltas or {}) do
             state.runningStats[k] = state.runningStats[k] + v
         end
     end
 end
 
 function ItemEvaluator:BacktrackCandidateDelta(slotId, cand, state, is2H)
+    local deltas = cand.statDeltas and cand.statDeltas[slotId]
     if is2H then
-        for k, v in pairs(cand.statDeltas or {}) do
+        for k, v in pairs(deltas or {}) do
             state.runningStats[k] = state.runningStats[k] - v
         end
         for k, v in pairs(state.cleanOffhandDelta) do
@@ -48,7 +40,7 @@ function ItemEvaluator:BacktrackCandidateDelta(slotId, cand, state, is2H)
         end
         state.runningStats["STAT_ILVL"] = state.runningStats["STAT_ILVL"] - cand.ilvl / 16
     else
-        for k, v in pairs(cand.statDeltas or {}) do
+        for k, v in pairs(deltas or {}) do
             state.runningStats[k] = state.runningStats[k] - v
         end
     end
@@ -103,7 +95,8 @@ function ItemEvaluator:SearchStep(optIndex, state)
             state.trackedKeys,
             state.runningStats,
             state.activeRules,
-            state.poolBestCombination
+            state.poolBestCombination,
+            state.seenPairs
         )
         return
     end
@@ -113,32 +106,7 @@ function ItemEvaluator:SearchStep(optIndex, state)
     
     for _, cand in ipairs(slotCandidates) do
         local key = cand.searchKey
-        local isDuplicate = false
-        if slotId == 12 then
-            local r1 = state.poolCurrentComb[11]
-            if r1 and r1.searchKey and key then
-                local swapsA = (r1.searchKey ~= "eq-11" and 1 or 0) + (key ~= "eq-12" and 1 or 0)
-                local swapsB = (key ~= "eq-11" and 1 or 0) + (r1.searchKey ~= "eq-12" and 1 or 0)
-                if swapsA > swapsB then
-                    isDuplicate = true
-                elseif swapsA == swapsB and key <= r1.searchKey then
-                    isDuplicate = true
-                end
-            end
-        elseif slotId == 14 then
-            local t1 = state.poolCurrentComb[13]
-            if t1 and t1.searchKey and key then
-                local swapsA = (t1.searchKey ~= "eq-13" and 1 or 0) + (key ~= "eq-14" and 1 or 0)
-                local swapsB = (key ~= "eq-13" and 1 or 0) + (t1.searchKey ~= "eq-14" and 1 or 0)
-                if swapsA > swapsB then
-                    isDuplicate = true
-                elseif swapsA == swapsB and key <= t1.searchKey then
-                    isDuplicate = true
-                end
-            end
-        end
-        
-        if not isDuplicate and (not key or not state.usedBagItems[key]) then
+        if not key or not state.usedBagItems[key] then
             if key then state.usedBagItems[key] = true end
             state.poolCurrentComb[slotId] = cand
             
@@ -162,13 +130,12 @@ function ItemEvaluator:PerformSearch(candidatesPool, currentStats, trackedKeys, 
     local poolOptimizableSlots, poolCurrentComb = self:InitOptimizableSlots(candidatesPool)
     self:CalcStatDeltas(candidatesPool, trackedKeys)
     
-    local suffixMaxDelta = self:CalcBounds(poolOptimizableSlots, candidatesPool, trackedKeys)
     local suffixMaxSet = self:CalcSetsPruning(poolOptimizableSlots, candidatesPool, adjustedRequiredSets)
     local runningStats = self:InitRunningStats(poolCurrentComb, trackedKeys, currentStats)
     local runningSetCounts = self:InitRunningSetCounts(poolCurrentComb, adjustedRequiredSets)
     
-    self.upperBoundStats = self.upperBoundStats or {}
-    table.wipe(self.upperBoundStats)
+    self.seenPairs = self.seenPairs or {}
+    table.wipe(self.seenPairs)
     
     self.usedBagItems = self.usedBagItems or {}
     table.wipe(self.usedBagItems)
@@ -188,10 +155,9 @@ function ItemEvaluator:PerformSearch(candidatesPool, currentStats, trackedKeys, 
         runningSetCounts = runningSetCounts,
         activeRules = activeRules,
         cleanOffhandDelta = cleanOffhandDelta,
-        suffixMaxDelta = suffixMaxDelta,
         suffixMaxSet = suffixMaxSet,
-        upperBoundStats = self.upperBoundStats,
         usedBagItems = self.usedBagItems,
+        seenPairs = self.seenPairs,
         iterationsPerBatch = 500,
         lastYieldTime = debugprofilestop(),
         totalEvaluated = 0,
