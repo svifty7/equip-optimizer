@@ -49,6 +49,24 @@ function ItemEvaluator:GetUnmetCaps(activeRules)
     return unmet
 end
 
+function ItemEvaluator:GetCapsStatus(activeRules)
+    local status = {}
+    for _, rule in ipairs(activeRules) do
+        local targetRating = rule.value or 0
+        if targetRating > 0 and targetRating < 999999 then
+            local currentRating = self.lastOptimizedStats[rule.stat] or 0
+            local base = self.activeBasePct and self.activeBasePct[rule.stat] or 0
+            table.insert(status, {
+                rule = rule,
+                targetRating = targetRating,
+                currentRating = currentRating,
+                basePercent = base
+            })
+        end
+    end
+    return status
+end
+
 function ItemEvaluator:IsSlotSetLocked(chosenCand, optimizedSetCounts, adjustedRequiredSets)
     if not chosenCand then return false, nil end
     local setID = chosenCand.setID and (tonumber(chosenCand.setID) or chosenCand.setID)
@@ -60,6 +78,38 @@ function ItemEvaluator:IsSlotSetLocked(chosenCand, optimizedSetCounts, adjustedR
         end
     end
     return false, nil
+end
+
+local function GetItemTotalStat(item, stat)
+    if not item then return 0 end
+    local ratings = item.ratings or {}
+    local gems = item.gemsAndEnchants or {}
+    local potential = item.potentialGemsStats or {}
+    return (ratings[stat] or 0) + (gems[stat] or 0) + (potential[stat] or 0)
+end
+
+function ItemEvaluator:CalculateWeightedHarm(chosenCand, activeRules)
+    if not chosenCand or not self.lastOptimizedStats then return 0 end
+    local weightedHarm = 0
+    for priorityIndex, rule in ipairs(activeRules) do
+        local stat = rule.stat
+        local targetRating = rule.value or 0
+        if targetRating > 0 then
+            local currentTotalRating = self.lastOptimizedStats[stat] or 0
+            local equippedRating = GetItemTotalStat(chosenCand, stat)
+            
+            local originalDeficit = math.max(0, targetRating - currentTotalRating)
+            local newDeficit = math.max(0, targetRating - (currentTotalRating - equippedRating))
+            local harm = newDeficit - originalDeficit
+            
+            if harm > 0 then
+                local weight = 5 - priorityIndex
+                if weight < 1 then weight = 1 end
+                weightedHarm = weightedHarm + harm * weight
+            end
+        end
+    end
+    return weightedHarm
 end
 
 function ItemEvaluator:AnalyzeCaps()
@@ -83,6 +133,7 @@ function ItemEvaluator:AnalyzeCaps()
     
     local unmet = self:GetUnmetCaps(activeRules)
     result.unmet = unmet
+    result.capsStatus = self:GetCapsStatus(activeRules)
     
     -- Identify suitable stats based on rules
     local suitableStats = {}
@@ -141,6 +192,11 @@ function ItemEvaluator:AnalyzeCaps()
                 end
             end
             
+            local weightedHarm = 0
+            if not isLocked and not isSetLocked then
+                weightedHarm = self:CalculateWeightedHarm(chosenCand, activeRules)
+            end
+            
             table.insert(result.slots, {
                 slotId = slotId,
                 slotName = L[slotInfo.label] or slotInfo.name,
@@ -151,7 +207,8 @@ function ItemEvaluator:AnalyzeCaps()
                 extraStats = extraStats,
                 extraRatingsTable = extraRatingsTable,
                 extraRatingSum = extraRatingSum,
-                extraStatsString = GetItemStatsString(ratings, suitableStats)
+                extraStatsString = GetItemStatsString(ratings, suitableStats),
+                tuningScore = extraRatingSum - weightedHarm
             })
         end
     end

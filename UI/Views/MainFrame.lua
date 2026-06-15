@@ -65,7 +65,7 @@ function UI:CreateMainWindow()
 
     mainWindow:SetMovable(true)
     mainWindow:EnableMouse(true)
-    mainWindow:SetFrameStrata("HIGH")
+    mainWindow:SetFrameStrata("DIALOG")
     mainWindow:RegisterForDrag("LeftButton")
     mainWindow:SetScript("OnDragStart", function(self)
         self:StartMoving()

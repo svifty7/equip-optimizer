@@ -164,10 +164,12 @@ local function RunTests()
     
     assert(f1 ~= nil, "Finger 1 should be analyzed")
     assert(f2 ~= nil, "Finger 2 should be analyzed")
-    assert(#f1.extraStats == 1, "Finger 1 has Haste and Crit, so it has 1 extra stat (Crit)")
-    assert(f1.extraStats[1] == "STAT_CRIT", "Extra stat on Finger 1 should be Crit")
-    assert(#f2.extraStats == 1, "Finger 2 has Mastery (not needed in this test), so it has 1 extra stat")
-    assert(f2.extraStats[1] == "STAT_MASTERY", "Extra stat on Finger 2 should be Mastery")
+    assert(f1.tuningScore == -6350, "Finger 1 tuningScore should be -6350")
+    assert(f2.tuningScore == 400, "Finger 2 tuningScore should be 400")
+    
+    assert(analysis.capsStatus ~= nil, "capsStatus list should not be nil")
+    assert(#analysis.capsStatus == 1, "capsStatus list should have 1 item (Haste)")
+    assert(analysis.capsStatus[1].rule.stat == "STAT_HASTE", "First cap status should be Haste")
     
     print("Cap Analyzer offline test passed!")
 end

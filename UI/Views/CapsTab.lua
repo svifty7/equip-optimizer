@@ -71,72 +71,98 @@ function UI:DrawCaps()
     local result = ItemEvaluator:AnalyzeCaps()
     local offsetY = 5
     
-    if #result.unmet == 0 then
-        local status = child:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-        status:SetPoint("TOPLEFT", child, "TOPLEFT", 20, -20)
-        status:SetText("|cff00ff00" .. (L.NO_CAPS_UNMET or "All soft-caps are successfully met!") .. "|r")
-        offsetY = offsetY + 40
-    else
-        -- 1. Draw unmet caps headers
-        local unmetHeader = child:CreateFontString(nil, "OVERLAY", "GameFontNormalMed2")
-        unmetHeader:SetPoint("TOPLEFT", child, "TOPLEFT", 10, -offsetY)
-        unmetHeader:SetText(L.UNMET_CAPS_TITLE or "Unmet Soft-Caps:")
-        unmetHeader:SetTextColor(1, 0.3, 0.3, 1)
-        offsetY = offsetY + 20
-        
-        for _, item in ipairs(result.unmet) do
+    -- 1. Draw caps status header and all caps status aligned by columns
+    local capsHeader = child:CreateFontString(nil, "OVERLAY", "GameFontNormalMed2")
+    capsHeader:SetPoint("TOPLEFT", child, "TOPLEFT", 10, -offsetY)
+    capsHeader:SetText(L.CAPS_STATUS or "Soft-Cap Status:")
+    capsHeader:SetTextColor(1, 0.82, 0, 1)
+    offsetY = offsetY + 24
+    
+    if result.capsStatus and #result.capsStatus > 0 then
+        for _, item in ipairs(result.capsStatus) do
             local rule = item.rule
             local target = rule.value or 0
             local base = item.basePercent or 0
             local targetPct = base + ItemEvaluator:ConvertRatingToPercent(rule.stat, target)
             local currentPct = base + ItemEvaluator:ConvertRatingToPercent(rule.stat, item.currentRating)
-            local missingPercent = math.max(0, targetPct - currentPct)
-            local missingRating = math.max(0, target - item.currentRating)
             
-            local lblCap = child:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            lblCap:SetPoint("TOPLEFT", child, "TOPLEFT", 20, -offsetY)
-            lblCap:SetText(string.format(L.MISSING_CAP_FORMAT or "%s: missing %.2f%% (%d rating)", 
-                L[rule.stat] or rule.stat, missingPercent, math.ceil(missingRating)))
-            offsetY = offsetY + 18
+            local statName = L[rule.stat] or rule.stat
+            statName = statName:gsub(" ?%(%%%)", "")
+            
+            local row = CreateFrame("Frame", nil, child)
+            row:SetSize(760, 20)
+            row:SetPoint("TOPLEFT", child, "TOPLEFT", 10, -offsetY)
+            
+            -- Column 1: Stat Name
+            local lblStatName = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            lblStatName:SetPoint("LEFT", row, "LEFT", 10, 0)
+            lblStatName:SetWidth(140)
+            lblStatName:SetJustifyH("LEFT")
+            lblStatName:SetText(string.format("|cffeedd88%s:|r", statName))
+            
+            -- Column 2: Value
+            local lblValue = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            lblValue:SetPoint("LEFT", row, "LEFT", 155, 0)
+            lblValue:SetWidth(400)
+            lblValue:SetJustifyH("LEFT")
+            
+            if item.currentRating < target then
+                local missingPercent = targetPct - currentPct
+                local missingRating = target - item.currentRating
+                lblValue:SetText(string.format("|cffff3333-%.2f%% (-%d)|r", missingPercent, math.ceil(missingRating)))
+            elseif item.currentRating > target then
+                local excessPercent = currentPct - targetPct
+                local excessRating = item.currentRating - target
+                lblValue:SetText(string.format("|cffeedd88+%.2f%% (+%d)|r", excessPercent, math.ceil(excessRating)))
+            else
+                lblValue:SetText(string.format("|cff00ff00%s|r", L.STATUS_MET or "норма"))
+            end
+            
+            offsetY = offsetY + 20
         end
-        offsetY = offsetY + 15
-        
-        -- 2. Draw total summary header
-        local totalExtraRating = 0
-        for _, slot in ipairs(result.slots) do
-            if not slot.isLocked and not slot.isSetLocked then
-                for _, rating in pairs(slot.extraRatingsTable) do
-                    totalExtraRating = totalExtraRating + rating
-                end
+        offsetY = offsetY + 10
+    else
+        local lblNoRules = child:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        lblNoRules:SetPoint("TOPLEFT", child, "TOPLEFT", 20, -offsetY)
+        lblNoRules:SetText("|cff888888" .. (L.NO_RULES or "No rules defined.") .. "|r")
+        offsetY = offsetY + 24
+    end
+    
+    -- 2. Draw total summary header
+    local totalExtraRating = 0
+    for _, slot in ipairs(result.slots) do
+        if not slot.isLocked and not slot.isSetLocked then
+            for _, rating in pairs(slot.extraRatingsTable) do
+                totalExtraRating = totalExtraRating + rating
             end
         end
-        
-        local summaryText = string.format(L.TOTAL_EXTRA_STATS or "Total extra stats to replace: %d rating", totalExtraRating)
-        local summaryHeader = child:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-        summaryHeader:SetPoint("TOPLEFT", child, "TOPLEFT", 10, -offsetY)
-        summaryHeader:SetText(summaryText)
-        offsetY = offsetY + 26
-        
-        -- 3. Draw flat slots list
-        table.sort(result.slots, function(a, b)
-            return (a.extraRatingSum or 0) > (b.extraRatingSum or 0)
-        end)
-        
-        local count = 0
-        for _, slotInfo in ipairs(result.slots) do
-            if not slotInfo.isLocked and not slotInfo.isSetLocked and #slotInfo.extraStats > 0 then
-                self:DrawCapsRow(child, slotInfo, offsetY)
-                offsetY = offsetY + 24
-                count = count + 1
-            end
-        end
-        
-        if count == 0 then
-            local allOptimized = child:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            allOptimized:SetPoint("TOPLEFT", child, "TOPLEFT", 20, -offsetY)
-            allOptimized:SetText("|cff00ff00" .. (L.NO_RECS or "All slots are optimized!") .. "|r")
+    end
+    
+    local summaryText = string.format(L.TOTAL_EXTRA_STATS or "Total extra stats to replace: %d rating", totalExtraRating)
+    local summaryHeader = child:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    summaryHeader:SetPoint("TOPLEFT", child, "TOPLEFT", 10, -offsetY)
+    summaryHeader:SetText(summaryText)
+    offsetY = offsetY + 26
+    
+    -- 3. Draw flat slots list
+    table.sort(result.slots, function(a, b)
+        return (a.tuningScore or 0) > (b.tuningScore or 0)
+    end)
+    
+    local count = 0
+    for _, slotInfo in ipairs(result.slots) do
+        if not slotInfo.isLocked and not slotInfo.isSetLocked and #slotInfo.extraStats > 0 then
+            self:DrawCapsRow(child, slotInfo, offsetY)
             offsetY = offsetY + 24
+            count = count + 1
         end
+    end
+    
+    if count == 0 then
+        local allOptimized = child:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        allOptimized:SetPoint("TOPLEFT", child, "TOPLEFT", 20, -offsetY)
+        allOptimized:SetText("|cff00ff00" .. (L.NO_RECS or "All slots are optimized!") .. "|r")
+        offsetY = offsetY + 24
     end
     
     child:SetHeight(offsetY)

@@ -12,14 +12,25 @@
 
 **EquipOptimizer** is your ultimate in-game gear assistant for World of Warcraft. Stop wasting time exporting code to external simulators or manually mathing out stat weights on spreadsheets. Just tell the addon what stats you want to prioritize, and it will scan your bags to find and equip your best possible gear setup in seconds—completely lag-free!
 
+## Addon Tabs
+
+*   **Recommendations:** View the recommended gear combination for all slots. You can see a detailed stats comparison (Current vs Recommended), and with a single click on **Equip Best**, the addon will sequentially and safely swap your gear.
+*   **Gems:** Suggests the best gems to insert into empty sockets on both your currently equipped and recommended gear to maximize your throughput according to your active stat rules.
+*   **Caps:** Performs soft-cap analysis. It tracks your stats against rules containing target caps (e.g., `Haste >= 30%`), showing current rating vs the cap, and lists gear slots containing extra rating of those stats sorted by tuning priority so you know exactly which slots to swap out.
+*   **Settings:** The control center where you configure:
+    *   **Stat Rules:** Set your stat priorities and soft-caps.
+    *   **Set Requirements:** Lock in your 2-piece or 4-piece Tier Set bonuses.
+    *   **Reserved Slots:** Check specific slots (like Legendaries or favorite trinkets) that you want the addon to ignore.
+    *   **Profile Management:** Save, load, and import/export profiles for different specs or scenarios.
+
 ## Addon Features
 
 *   **No More Guesswork:** Instantly see which items in your bags are actual upgrades when combined with your current gear.
-*   **Play Your Way (Stat Rules):** Easily set up your spec's priorities (e.g., *"Get Haste to 30% first, then stack as much Critical Strike as possible"*). The addon does the math and finds the perfect item balance.
-*   **Protect Your Tier Sets:** Love your 2-piece or 4-piece set bonus? Lock it in! The addon will optimize all your other gear slots without breaking your crucial set effects.
-*   **Perfect Gemming Made Easy:** Tells you exactly which gems to slot into your gear based on your active stat priorities.
-*   **Lock Your Favorites:** Have a legendary weapon or a utility trinket you never want to unequip? Lock that slot, and the addon will build the rest of your gear around it.
-*   **Completely Lag-Free:** Calculations run quietly in the background. You can keep playing, chatting, or fighting without any screen freezes or frame drops.
+*   **Play Your Way (Stat Rules):** Easily set up your spec's priorities (e.g., *"Get Haste to 30% first, then stack as much Critical Strike as possible"*).
+*   **Protect Your Tier Sets:** Keep your 2-piece or 4-piece set bonuses active while the addon optimizes other slots.
+*   **Perfect Gemming Made Easy:** Tells you exactly which gems to slot based on your active stat priorities.
+*   **Lock Your Favorites:** Lock specific slots, and the addon will build the rest of your gear around them.
+*   **Completely Lag-Free:** Heavy gear permutation calculations run asynchronously using coroutines, keeping your FPS high and preventing game freezes.
 
 ---
 
@@ -39,12 +50,15 @@ You just got a massive Item Level upgrade chest piece from a raid boss, but equi
 
 ## How to Use
 
-1.  **Open the Menu:** Click the minimap icon or type `/eo` in chat.
-2.  **Set Your Stats:** Under **Settings > Stat Rules**, add the stats you care about in order of preference (e.g., Haste, then Crit).
-3.  **Choose Set Requirements (Optional):** Tell the addon if you must maintain a 2-piece or 4-piece tier bonus.
-4.  **Reserve Slots (Optional):** Check the boxes for any gear slots you want the addon to ignore (like a legendary or favorite trinket).
-5.  **Get Recommendations & Swap:** Go to the **Recommendations** tab, click **Recalculate**, and hit **Equip Best** to instantly swap your gear!
-6.  **Optimize Sockets:** Check the **Gems** tab to see the recommended gems for your sockets.
+1.  **Open the Menu:** Click the minimap icon or type `/eo` (or `/equipopt`) in chat.
+2.  **Configure Settings:**
+    *   Go to the **Settings** tab.
+    *   Under **Stat Rules**, add the stats you care about in order of preference (e.g., Haste, then Crit).
+    *   Under **Set Requirements**, specify if you must maintain a 2-piece or 4-piece tier bonus.
+    *   Under **Reserved Slots**, check the boxes for any gear slots you want the addon to ignore (like a legendary or favorite trinket).
+3.  **Get Recommendations & Swap:** Go to the **Recommendations** tab, and click **Equip Best** to swap your gear!
+4.  **Optimize Sockets:** Check the **Gems** tab to see the recommended gems for your sockets.
+5.  **Refine Soft-Caps:** Use the **Caps** tab to see which items have excessive ratings that can be swapped out to hit your caps more precisely.
 
 ---
 ---
@@ -54,14 +68,25 @@ You just got a massive Item Level upgrade chest piece from a raid boss, but equi
 
 **EquipOptimizer** — это ваш личный помощник по подбору экипировки прямо в World of Warcraft. Забудьте о постоянном копировании кодов для внешних симуляторов и ручном подсчете характеристик в таблицах. Просто укажите аддону, какие характеристики вам нужны, и он за секунды найдет в ваших сумках и наденет лучшую комбинацию вещей — абсолютно без зависаний игры!
 
+## Вкладки аддона
+
+*   **Рекомендации (Recommendations):** Показывает оптимальный набор экипировки для всех слотов. Вы можете увидеть детальное сравнение характеристик (Текущие против Рекомендованных), и в один клик по кнопке **Надеть лучшее** (Equip Best) аддон безопасно и поочередно переоденет персонажа.
+*   **Самоцветы (Gems):** Рекомендует лучшие камни для пустых гнезд как на текущей, так и на рекомендованной экипировке для максимизации пользы в соответствии с вашими правилами характеристик.
+*   **Капы (Caps):** Выполняет анализ софт-капов. Отслеживает характеристики, для которых заданы целевые значения (например, `Скорость >= 30%`), показывая текущий рейтинг относительно капа, а также выводит список слотов экипировки с избыточными характеристиками, отсортированный по приоритету настройки.
+*   **Настройки (Settings):** Главная панель управления, где вы можете настроить:
+    *   **Правила характеристик (Stat Rules):** Задавайте приоритеты характеристик и софт-капы.
+    *   **Требования к комплектам (Set Requirements):** Указывайте необходимость сохранения бонусов от 2 или 4 предметов комплекта.
+    *   **Заблокированные слоты (Reserved Slots):** Выбирайте слоты (например, легендарные предметы или аксессуары), которые аддон не должен изменять.
+    *   **Управление профилями (Profiles):** Сохраняйте, загружайте и импортируйте/экспортируйте профили для разных специализаций и ситуаций.
+
 ## Возможности аддона
 
 *   **Больше никакого выбора наугад:** Аддон мгновенно показывает, какие вещи в ваших сумках действительно усилят персонажа в сочетании с остальной экипировкой.
-*   **Настройка под ваш стиль игры:** Легко задавайте приоритеты (например: *"Сначала соберите 30% скорости, а всё остальное вложите в критический удар"*). Аддон сам все рассчитает и найдет идеальный баланс.
-*   **Сохранение бонусов комплектов (сетов):** Дорожите бонусом от 2 или 4 кусков сета? Просто укажите это в настройках. Аддон подберет лучшие вещи во все остальные слоты, не сломав ваш комплект.
-*   **Идеальный подбор самоцветов:** Аддон подскажет, какие именно камни лучше всего вставить в гнезда вашей экипировки согласно выбранным приоритетам.
-*   **Блокировка любимых вещей:** Хотите всегда носить легендарное оружие или любимый аксессуар? Заблокируйте нужный слот, и аддон подберет экипировку вокруг этой вещи.
-*   **Играйте без лагов:** Расчеты проходят незаметно на фоне. Вы можете продолжать сражаться или общаться без зависаний экрана или просадки FPS.
+*   **Настройка под ваш стиль игры:** Легко задавайте приоритеты (например: *"Сначала соберите 30% скорости, а всё остальное вложите в критический удар"*).
+*   **Сохранение бонусов комплектов (сетов):** Сохраняйте бонусы от 2 или 4 кусков сета активными, пока аддон оптимизирует остальные слоты.
+*   **Идеальный подбор самоцветов:** Узнайте точные рекомендации по камням на основе ваших приоритетов характеристик.
+*   **Блокировка любимых вещей:** Заблокируйте нужный слот, и аддон подберет экипировку вокруг этой вещи.
+*   **Играйте без лагов:** Тяжелые вычисления перестановок экипировки выполняются асинхронно с помощью корутин, сохраняя высокий FPS и предотвращая зависания игры.
 
 ---
 
@@ -81,9 +106,12 @@ You just got a massive Item Level upgrade chest piece from a raid boss, but equi
 
 ## Как использовать
 
-1.  **Открыть меню:** Нажмите на иконку у мини-карты или введите `/eo` в чате.
-2.  **Настроить характеристики:** В меню **Настройки > Правила характеристик** добавьте нужные статы в порядке важности (например: Скорость, затем Крит).
-3.  **Указать комплекты (Опционально):** Выберите необходимость сохранять 2 или 4 предмета сета.
-4.  **Заблокировать слоты (Опционально):** Отметьте галочками слоты, которые аддон не должен менять (например, легендарку).
-5.  **Получить рекомендации:** Перейдите во вкладку **Рекомендации**, нажмите **Пересчитать**, а затем кнопку **Надеть лучшее**, чтобы мгновенно переодеть персонажа!
-6.  **Подобрать камни:** Загляните во вкладку **Самоцветы**, чтобы увидеть рекомендации по заполнению пустых гнезд.
+1.  **Открыть меню:** Нажмите на иконку у мини-карты или введите `/eo` (или `/equipopt`) в чате.
+2.  **Настроить параметры:**
+    *   Перейдите во вкладку **Настройки** (Settings).
+    *   В разделе **Правила характеристик** (Stat Rules) добавьте нужные статы в порядке важности (например: Скорость, затем Крит).
+    *   В разделе **Комплекты** (Set Requirements) выберите необходимость сохранять 2 или 4 предмета сета.
+    *   В разделе **Заблокированные слоты** (Reserved Slots) отметьте галочками слоты, которые аддон не должен менять (например, легендарку).
+3.  **Получить рекомендации и переодеться:** Перейдите во вкладку **Рекомендации** (Recommendations) и нажмите кнопку **Надеть лучшее** (Equip Best), чтобы мгновенно переодеть персонажа!
+4.  **Подобрать камни:** Загляните во вкладку **Самоцветы** (Gems), чтобы увидеть рекомендации по заполнению пустых гнезд.
+5.  **Настроить софт-капы:** Используйте вкладку **Капы** (Caps), чтобы увидеть, какие предметы имеют избыточный рейтинг и могут быть заменены для более точного достижения капов.
