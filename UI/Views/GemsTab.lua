@@ -39,7 +39,7 @@ function UI:DrawGems()
     title:SetText(L.GEMS or "Gems")
     
     -- Dropdown for Gem Quality
-    local qualityDropdown = self:CreateDropdown(gemsContainer, 160, L.GEM_QUALITY or "Качество камней")
+    local qualityDropdown = self:CreateDropdown(gemsContainer, 160, L.GEM_QUALITY or "Gem Quality")
     qualityDropdown:SetPoint("TOPRIGHT", gemsContainer, "TOPRIGHT", -10, -10)
     
     local function GetRankTextWithIcon(rank)
@@ -65,18 +65,18 @@ function UI:DrawGems()
     end)
     
     -- Dropdown for Meta Gem Preference
-    local metaDropdown = self:CreateDropdown(gemsContainer, 200, L.META_GEM_PREF or "Выбор мета-камня")
+    local metaDropdown = self:CreateDropdown(gemsContainer, 200, L.META_GEM_PREF or "Meta Gem Preference")
     metaDropdown:SetPoint("TOPRIGHT", qualityDropdown, "TOPLEFT", -20, 0)
     
     local metaOptions = {
-        [0] = L.META_AUTO or "Автоматически"
+        [0] = L.META_AUTO or "Automatic"
     }
     
     local fallbacks = {
-        [1] = "Могучий алмаз",
-        [2] = "Теллурический алмаз",
-        [3] = "Стоический алмаз",
-        [4] = "Непостижимый алмаз"
+        [1] = L.META_GEM_1 or "Mighty Diamond",
+        [2] = L.META_GEM_2 or "Telluric Diamond",
+        [3] = L.META_GEM_3 or "Stoic Diamond",
+        [4] = L.META_GEM_4 or "Inscrutable Diamond"
     }
     
     local function UpdateMetaOptions()

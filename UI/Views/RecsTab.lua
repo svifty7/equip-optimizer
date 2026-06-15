@@ -13,11 +13,11 @@ function UI:RefreshProgress()
         if recsContainer.title then
             local titleText = L.RECOMMENDATIONS or "Recommendations"
             local analyzedStr = string.format(L.ANALYZED_COMBINATIONS or "Analyzed: %d", ItemEvaluator.analyzedCombinations or 0)
-            recsContainer.title:SetText(string.format("%s (Расчет: %d%%, %s)", titleText, ItemEvaluator.optimizationProgress, analyzedStr))
+            recsContainer.title:SetText(string.format(L.CALCULATING_FORMAT or "%s (Calculating: %d%%, %s)", titleText, ItemEvaluator.optimizationProgress, analyzedStr))
         end
         if recsContainer.equipBtn then
             self:SetButtonDisabled(recsContainer.equipBtn, true)
-            recsContainer.equipBtn.text:SetText(string.format("Оптимизация... (%d%%)", ItemEvaluator.optimizationProgress))
+            recsContainer.equipBtn.text:SetText(string.format(L.OPTIMIZING_FORMAT or "Optimizing... (%d%%)", ItemEvaluator.optimizationProgress))
         end
         if recsContainer.reanalyzeBtn then
             self:SetButtonDisabled(recsContainer.reanalyzeBtn, true)
@@ -50,7 +50,7 @@ function UI:DrawRecsTitleAndReanalyze(recsContainer, recs)
     local titleText = L.RECOMMENDATIONS or "Recommendations"
     if ItemEvaluator.isOptimizing then
         local analyzedStr = string.format(L.ANALYZED_COMBINATIONS or "Analyzed: %d", ItemEvaluator.analyzedCombinations or 0)
-        titleText = string.format("%s (Расчет: %d%%, %s)", titleText, ItemEvaluator.optimizationProgress, analyzedStr)
+        titleText = string.format(L.CALCULATING_FORMAT or "%s (Calculating: %d%%, %s)", titleText, ItemEvaluator.optimizationProgress, analyzedStr)
     elseif ItemEvaluator.hasOptimizationRun and (ItemEvaluator.analyzedCombinations or 0) > 0 then
         local analyzedStr = string.format(L.ANALYZED_COMBINATIONS or "Analyzed: %d", ItemEvaluator.analyzedCombinations or 0)
         titleText = string.format("%s (%s)", titleText, analyzedStr)
@@ -167,7 +167,7 @@ function UI:DrawRecsEquipButton(recsContainer, recs)
             equipBtn.text:SetText(L.IN_COMBAT or "In Combat")
         elseif ItemEvaluator.isOptimizing then
             self:SetButtonDisabled(equipBtn, true)
-            equipBtn.text:SetText(string.format("Оптимизация... (%d%%)", ItemEvaluator.optimizationProgress))
+            equipBtn.text:SetText(string.format(L.OPTIMIZING_FORMAT or "Optimizing... (%d%%)", ItemEvaluator.optimizationProgress))
         elseif ItemEvaluator:IsEquipQueueActive() then
             self:SetButtonDisabled(equipBtn, true)
             equipBtn.text:SetText(L.EQUIPPING or "Equipping...")

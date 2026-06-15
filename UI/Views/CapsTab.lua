@@ -43,7 +43,7 @@ function UI:DrawCapsRow(parent, slotInfo, offsetY)
     lblAction:SetWidth(415)
     lblAction:SetJustifyH("LEFT")
     
-    lblAction:SetText(string.format(L.ITEM_STATS_FORMAT or "Характеристики: %s", slotInfo.extraStatsString))
+    lblAction:SetText(string.format(L.ITEM_STATS_FORMAT or "Stats: %s", slotInfo.extraStatsString))
     
     local btnEq = CreateFrame("Button", nil, row)
     btnEq:SetAllPoints(lblEquipped)
@@ -111,7 +111,7 @@ function UI:DrawCaps()
             end
         end
         
-        local summaryText = string.format(L.TOTAL_EXTRA_STATS or "Всего лишних характеристик для замены: %d ед. рейтинга", totalExtraRating)
+        local summaryText = string.format(L.TOTAL_EXTRA_STATS or "Total extra stats to replace: %d rating", totalExtraRating)
         local summaryHeader = child:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         summaryHeader:SetPoint("TOPLEFT", child, "TOPLEFT", 10, -offsetY)
         summaryHeader:SetText(summaryText)

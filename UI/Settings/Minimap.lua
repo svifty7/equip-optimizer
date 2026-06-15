@@ -70,7 +70,7 @@ function Core:CreateMinimapButton()
     MinimapButton:SetScript("OnEnter", function(selfBtn)
         GameTooltip:SetOwner(selfBtn, "ANCHOR_LEFT")
         GameTooltip:AddLine("EquipOptimizer")
-        GameTooltip:AddLine(L.MINIMAP_TOOLTIP_LEFT or "ЛКМ: Открыть настройки", 1, 1, 1)
+        GameTooltip:AddLine(L.MINIMAP_TOOLTIP_LEFT or "Left Click: Open settings", 1, 1, 1)
         GameTooltip:Show()
     end)
     

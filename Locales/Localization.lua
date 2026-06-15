@@ -42,7 +42,6 @@ local enUS = {
     IMPORT_EXPORT_STRING = "Import/Export String",
     RENAME_PROFILE = "Rename Profile",
     MINIMAP_TOOLTIP_LEFT = "Left Click: Open settings",
-    MINIMAP_TOOLTIP_RIGHT = "Right Click: Equip best gear",
     EMPTY = "Empty",
     SET_REQUIREMENTS = "Set Requirements",
     SET_NONE = "None",
@@ -51,7 +50,7 @@ local enUS = {
     NO_SETS_FOUND = "No item sets detected in bags or equipped!",
     HELP_TOOLTIP_TITLE = "How to configure stats:",
     HELP_TOOLTIP_MIN = "• Soft-Cap: Enter the target combat rating value (e.g. 5000) you want to reach. The addon will prioritize this stat until the cap is met, after which extra rating is heavily penalized (40% weight).",
-    HELP_TOOLTIP_MAX = "• Target Weight: All enabled stats are soft caps. The order determines their priority, with higher priority stats processed first.",
+    HELP_TOOLTIP_MAX = "• Priority: All enabled stats are soft caps. The order determines their priority, with higher priority stats processed first.",
     HELP_TOOLTIP_ORDER = "• Order matters! Rules higher in the list are executed first.",
     IMPOSSIBLE_SET_WARN = "Warning: Set requirements for '%s' lowered from %d to %d pieces (not enough matching items in bags/equipped).",
 
@@ -129,6 +128,15 @@ local enUS = {
     TOTAL_EXTRA_STATS = "Total extra stats to replace: %d rating",
     UNMET_CAPS_TITLE = "Unmet Soft-Caps",
     BUFF_WARNING = "Warning: The optimizer may not work correctly if you are not in the correct specialization form or under the effect of temporary stat-modifying auras.",
+    OPTIMIZING_FORMAT = "Optimizing... (%d%%)",
+    CALCULATING_FORMAT = "%s (Calculating: %d%%, %s)",
+    ERROR_PROFILE_EXISTS = "Profile with this name already exists!",
+    SUCCESS_IMPORT = "Profile successfully imported!",
+    ERROR_IMPORT = "Import error: %s",
+    META_GEM_1 = "Mighty Diamond",
+    META_GEM_2 = "Telluric Diamond",
+    META_GEM_3 = "Stoic Diamond",
+    META_GEM_4 = "Inscrutable Diamond",
 }
 
 -- Russian translations
@@ -148,7 +156,7 @@ local ruRU = {
     ANALYZED_COMBINATIONS = "Проверено: %d",
     REANALYZE = "Пересчитать",
     PRIMARY_STATS = "Основные характеристики",
-    SECONDARY_STATS = "Второстепенные характеристики",
+    SECONDARY_STATS = "Вторичные характеристики",
     CURRENTLY_EQUIPPED = "Экипировано",
     RECOMMENDED = "Рекомендуется",
     DIFF = "Разница",
@@ -168,7 +176,6 @@ local ruRU = {
     IMPORT_EXPORT_STRING = "Строка импорта/экспорта",
     RENAME_PROFILE = "Переименовать",
     MINIMAP_TOOLTIP_LEFT = "ЛКМ: Открыть настройки",
-    MINIMAP_TOOLTIP_RIGHT = "ПКМ: Надеть лучшее снаряжение",
     EMPTY = "Пусто",
     SET_REQUIREMENTS = "Комплекты экипировки (Сеты)",
     SET_NONE = "Нет",
@@ -255,6 +262,15 @@ local ruRU = {
     TOTAL_EXTRA_STATS = "Всего лишних характеристик для замены: %d ед. рейтинга",
     UNMET_CAPS_TITLE = "Недостигнутые софт-капы",
     BUFF_WARNING = "Внимание: аддон может работать некорректно, если персонаж находится не в соответствующем облике или под действием изменяющих характеристики аур.",
+    OPTIMIZING_FORMAT = "Оптимизация... (%d%%)",
+    CALCULATING_FORMAT = "%s (Расчет: %d%%, %s)",
+    ERROR_PROFILE_EXISTS = "Профиль с таким именем уже существует!",
+    SUCCESS_IMPORT = "Профиль успешно импортирован!",
+    ERROR_IMPORT = "Ошибка импорта: %s",
+    META_GEM_1 = "Могучий алмаз",
+    META_GEM_2 = "Теллурический алмаз",
+    META_GEM_3 = "Стоический алмаз",
+    META_GEM_4 = "Непостижимый алмаз",
 }
 
 -- Select correct translations

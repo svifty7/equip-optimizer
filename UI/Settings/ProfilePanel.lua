@@ -49,7 +49,7 @@ function UI:DrawProfilePanel(settingsContainer)
         if text and text ~= "" then
             if text == activeName then return end
             if Core.db.char.profiles[text] then
-                Core:Print("|cffff0000Профиль с таким именем уже существует!|r")
+                Core:Print("|cffff0000" .. (L.ERROR_PROFILE_EXISTS or "Profile with this name already exists!") .. "|r")
                 return
             end
             Core.db.char.profiles[text] = Core.db.char.profiles[activeName]
@@ -74,7 +74,7 @@ function UI:DrawProfilePanel(settingsContainer)
         local text = eb:GetText()
         if text and text ~= "" then
             if Core.db.char.profiles[text] then
-                Core:Print("|cffff0000Профиль с таким именем уже существует!|r")
+                Core:Print("|cffff0000" .. (L.ERROR_PROFILE_EXISTS or "Profile with this name already exists!") .. "|r")
                 return
             end
             Core.db.char.profiles[text] = {
@@ -160,10 +160,10 @@ function UI:DrawProfilePanel(settingsContainer)
         if text and text ~= "" then
             local ok, err = Core:ImportProfileFromString(text)
             if ok then
-                Core:Print("|cff00ff00Профиль успешно импортирован!|r")
+                Core:Print("|cff00ff00" .. (L.SUCCESS_IMPORT or "Profile successfully imported!") .. "|r")
                 self:Refresh()
             else
-                Core:Print("|cffff0000Ошибка импорта: " .. tostring(err) .. "|r")
+                Core:Print(string.format("|cffff0000" .. (L.ERROR_IMPORT or "Import error: %s") .. "|r", tostring(err)))
             end
         end
     end)
