@@ -2,7 +2,7 @@
 local _, addonTable = ...
 local ItemEvaluator = addonTable.ItemEvaluator
 
--- Calculate total score using stat weights
+-- Calculate total score using stat weights and raw rating caps (pure math, no WoW API)
 function ItemEvaluator:CalculateScore(stats, rules)
     local score = 0
     
@@ -13,13 +13,15 @@ function ItemEvaluator:CalculateScore(stats, rules)
         end
     end
     
-    local primaryWeight = (numActive + 1.5) * 30
-    local primary = self.GetActivePrimaryStat and self:GetActivePrimaryStat()
+    -- Item level contribution (strictly mathematical)
+    score = score + ((stats["STAT_ILVL"] or 0) * 3500)
+    
+    -- self.activePrimaryStat is determined and stored beforehand (offline/test friendly)
+    local primary = self.activePrimaryStat
     if primary then
+        local primaryWeight = (numActive + 1.5) * 30
         score = score + ((stats[primary] or 0) * primaryWeight)
     end
-    
-    score = score + ((stats["STAT_ILVL"] or 0) * 3500)
     
     local currentIndex = 0
     for _, rule in ipairs(rules) do
@@ -28,17 +30,15 @@ function ItemEvaluator:CalculateScore(stats, rules)
             local weight = (numActive - currentIndex + 1)
             local val = stats[rule.stat] or 0
             
-            if rule.op == "MAX" then
+            if rule.stat == "STAT_ILVL" then
                 score = score + (val * weight)
-            else -- rule.op == ">="
-                local base = self.activeBasePct and self.activeBasePct[rule.stat] or 0
-                local targetPercent = math.max(0, (rule.value or 0) - base)
-                local targetRating = self:ConvertPercentToRating(rule.stat, targetPercent)
-                if val <= targetRating then
-                    -- High value while below cap
+            else
+                -- Target soft cap rating (precalculated offline/test friendly)
+                local targetRating = rule.targetRating or 0
+                if targetRating <= 0 or val <= targetRating then
                     score = score + (val * weight)
                 else
-                    -- After cap, give it a moderately diminished weight (40%) instead of crippling it
+                    -- Excess rating above soft cap: multiply by significantly reduced weight (40% weight)
                     score = score + (targetRating * weight) + ((val - targetRating) * (weight * 0.4))
                 end
             end

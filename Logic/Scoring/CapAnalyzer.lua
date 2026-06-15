@@ -34,11 +34,10 @@ end
 function ItemEvaluator:GetUnmetCaps(activeRules)
     local unmet = {}
     for _, rule in ipairs(activeRules) do
-        local base = self.activeBasePct and self.activeBasePct[rule.stat] or 0
-        local targetPercent = math.max(0, (rule.value or 0) - base)
-        local targetRating = self:ConvertPercentToRating(rule.stat, targetPercent)
+        local targetRating = rule.value or 0
         local currentRating = self.lastOptimizedStats[rule.stat] or 0
-        if currentRating < targetRating then
+        if targetRating > 0 and currentRating < targetRating then
+            local base = self.activeBasePct and self.activeBasePct[rule.stat] or 0
             table.insert(unmet, {
                 rule = rule,
                 targetRating = targetRating,
@@ -75,7 +74,8 @@ function ItemEvaluator:AnalyzeCaps()
     local activeRules = {}
     if profile.rules then
         for _, r in ipairs(profile.rules) do
-            if r.enabled and r.op == ">=" and secondaryKeys[r.stat] then
+            local targetVal = r.value or 0
+            if r.enabled and targetVal > 0 and secondaryKeys[r.stat] then
                 table.insert(activeRules, r)
             end
         end

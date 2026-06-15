@@ -87,13 +87,16 @@ function UI:DrawCaps()
         for _, item in ipairs(result.unmet) do
             local rule = item.rule
             local target = rule.value or 0
-            local current = ItemEvaluator:ConvertRatingToPercent(rule.stat, item.currentRating) + (item.basePercent or 0)
-            local missingPercent = math.max(0, target - current)
+            local base = item.basePercent or 0
+            local targetPct = base + ItemEvaluator:ConvertRatingToPercent(rule.stat, target)
+            local currentPct = base + ItemEvaluator:ConvertRatingToPercent(rule.stat, item.currentRating)
+            local missingPercent = math.max(0, targetPct - currentPct)
+            local missingRating = math.max(0, target - item.currentRating)
             
             local lblCap = child:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
             lblCap:SetPoint("TOPLEFT", child, "TOPLEFT", 20, -offsetY)
             lblCap:SetText(string.format(L.MISSING_CAP_FORMAT or "%s: missing %.2f%% (%d rating)", 
-                L[rule.stat] or rule.stat, missingPercent, math.ceil(item.targetRating - item.currentRating)))
+                L[rule.stat] or rule.stat, missingPercent, math.ceil(missingRating)))
             offsetY = offsetY + 18
         end
         offsetY = offsetY + 15

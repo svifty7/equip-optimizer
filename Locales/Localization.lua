@@ -50,8 +50,8 @@ local enUS = {
     SET_COUNT_FORMAT = "%s (owned: %d)",
     NO_SETS_FOUND = "No item sets detected in bags or equipped!",
     HELP_TOOLTIP_TITLE = "How to configure stats:",
-    HELP_TOOLTIP_MIN = "• Minimum (%): The addon will pick items until it reaches the specified percentage. Perfect for important 'soft-caps' (e.g. 30% haste).",
-    HELP_TOOLTIP_MAX = "• Maximize: The addon will equip items with this stat, ignoring the rest. Use for the strongest stat after caps are met.",
+    HELP_TOOLTIP_MIN = "• Soft-Cap: Enter the target combat rating value (e.g. 5000) you want to reach. The addon will prioritize this stat until the cap is met, after which extra rating is heavily penalized (40% weight).",
+    HELP_TOOLTIP_MAX = "• Target Weight: All enabled stats are soft caps. The order determines their priority, with higher priority stats processed first.",
     HELP_TOOLTIP_ORDER = "• Order matters! Rules higher in the list are executed first.",
     IMPOSSIBLE_SET_WARN = "Warning: Set requirements for '%s' lowered from %d to %d pieces (not enough matching items in bags/equipped).",
 
@@ -128,6 +128,7 @@ local enUS = {
     ITEM_STATS_FORMAT = "Stats: %s",
     TOTAL_EXTRA_STATS = "Total extra stats to replace: %d rating",
     UNMET_CAPS_TITLE = "Unmet Soft-Caps",
+    BUFF_WARNING = "Warning: The optimizer may not work correctly if you are not in the correct specialization form or under the effect of temporary stat-modifying auras.",
 }
 
 -- Russian translations
@@ -175,8 +176,8 @@ local ruRU = {
     SET_COUNT_FORMAT = "%s (есть: %d)",
     NO_SETS_FOUND = "Комплекты не найдены в сумках или на персонаже!",
     HELP_TOOLTIP_TITLE = "Как настраивать характеристики:",
-    HELP_TOOLTIP_MIN = "• Minimum (%): Аддон будет подбирать вещи, пока не достигнет указанного процента. Идеально для сбора важных 'софт-капов' (например, 30% скорости).",
-    HELP_TOOLTIP_MAX = "• Максимизировать: Аддон будет надевать вещи с этой характеристикой, игнорируя остальные. Используйте для самого сильного стата после того, как собраны капы.",
+    HELP_TOOLTIP_MIN = "• Софт-кап: Введите значение целевого боевого рейтинга (например, 5000). Аддон будет стремиться набрать этот кап. При превышении излишек рейтинга оценивается с пониженным весом (40% от базового).",
+    HELP_TOOLTIP_MAX = "• Приоритет: Все включенные статы работают как софт-капы. Порядок статов определяет их важность: статы, расположенные выше в списке, обрабатываются в первую очередь.",
     HELP_TOOLTIP_ORDER = "• Порядок важен! Правила, стоящие ВЫШЕ в списке, выполняются первыми.",
     IMPOSSIBLE_SET_WARN = "Внимание: Требование комплекта '%s' снижено с %d до %d предм. (недостаточно подходящих вещей в сумках/надето).",
 
@@ -253,6 +254,7 @@ local ruRU = {
     ITEM_STATS_FORMAT = "Характеристики: %s",
     TOTAL_EXTRA_STATS = "Всего лишних характеристик для замены: %d ед. рейтинга",
     UNMET_CAPS_TITLE = "Недостигнутые софт-капы",
+    BUFF_WARNING = "Внимание: аддон может работать некорректно, если персонаж находится не в соответствующем облике или под действием изменяющих характеристики аур.",
 }
 
 -- Select correct translations

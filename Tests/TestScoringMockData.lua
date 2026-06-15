@@ -20,9 +20,9 @@ local ratingPerPercent = {
 }
 
 local rules = {
-    { stat = "STAT_HASTE", enabled = true, op = ">=", value = 25.0 },
-    { stat = "STAT_MASTERY", enabled = true, op = ">=", value = 20.0 },
-    { stat = "STAT_CRIT", enabled = true, op = "MAX", value = 0 },
+    { stat = "STAT_HASTE", enabled = true, value = 3960 },
+    { stat = "STAT_MASTERY", enabled = true, value = 3154 },
+    { stat = "STAT_CRIT", enabled = true, value = 999999 },
 }
 
 local equipped = {

@@ -153,59 +153,6 @@ return function(ItemEvaluator)
         return totalRating
     end
 
-    function ItemEvaluator:CompareCombinations(combA, combB, rules)
-        local activeRules = {}
-        for _, r in ipairs(rules) do
-            if r.enabled == nil or r.enabled == true then
-                table.insert(activeRules, r)
-            end
-        end
-        for i, rule in ipairs(activeRules) do
-            local valA = combA.stats[rule.stat] or 0
-            local valB = combB.stats[rule.stat] or 0
-            
-            if rule.op == "MAX" then
-                if valA ~= valB then
-                    return valA > valB
-                end
-            elseif rule.op == "MIN" then
-                if valA ~= valB then
-                    return valA < valB
-                end
-            else
-                local targetRating = self:ConvertPercentToRating(rule.stat, rule.value or 0)
-                local satA = false
-                local satB = false
-                
-                if rule.op == ">=" then satA = (valA >= targetRating); satB = (valB >= targetRating)
-                elseif rule.op == "<=" then satA = (valA <= targetRating); satB = (valB <= targetRating)
-                elseif rule.op == ">" then satA = (valA > targetRating); satB = (valB > targetRating)
-                elseif rule.op == "<" then satA = (valA < targetRating); satB = (valB < targetRating)
-                elseif rule.op == "=" then
-                    satA = (math.abs(valA - targetRating) < 50)
-                    satB = (math.abs(valB - targetRating) < 50)
-                end
-                
-                if satA ~= satB then
-                    return satA
-                elseif not satA then
-                    if rule.op == ">=" or rule.op == ">" then
-                        if valA ~= valB then return valA > valB end
-                    elseif rule.op == "<=" or rule.op == "<" then
-                        if valA ~= valB then return valA < valB end
-                    else -- "="
-                        local distA = math.abs(valA - targetRating)
-                        local distB = math.abs(valB - targetRating)
-                        if distA ~= distB then return distA < distB end
-                    end
-                end
-            end
-        end
-        
-        local ilvlA = combA.stats["STAT_ILVL"] or 0
-        local ilvlB = combB.stats["STAT_ILVL"] or 0
-        return ilvlA > ilvlB
-    end
 
     function ItemEvaluator:GetResultingStats(combination, currentStats, ratingPerPercent, equipped)
         local netStats = {

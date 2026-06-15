@@ -25,10 +25,7 @@ function UI:RefreshProgress()
     end
 end
 
-function UI:DrawRecs()
-    local recsContainer = self.mainWindow.recsContainer
-    
-    -- 1. Create main title once
+function UI:DrawRecsTitleAndReanalyze(recsContainer, recs)
     if not recsContainer.title then
         recsContainer.title = recsContainer:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         recsContainer.title:SetPoint("TOPLEFT", recsContainer, "TOPLEFT", 10, -10)
@@ -36,7 +33,6 @@ function UI:DrawRecs()
     recsContainer.title:Show()
     recsContainer.progressText = recsContainer.title
     
-    -- Create reanalyze button once
     if not recsContainer.reanalyzeBtn then
         local btn = self:CreateStyledButton(recsContainer, 110, 22, L.REANALYZE or "Recalculate")
         btn:SetPoint("TOPRIGHT", recsContainer, "TOPRIGHT", -10, -8)
@@ -47,11 +43,155 @@ function UI:DrawRecs()
         recsContainer.reanalyzeBtn = btn
     end
     recsContainer.reanalyzeBtn:Show()
-    if ItemEvaluator.isOptimizing or ItemEvaluator:IsEquipQueueActive() then
-        self:SetButtonDisabled(recsContainer.reanalyzeBtn, true)
-    else
-        self:SetButtonDisabled(recsContainer.reanalyzeBtn, false)
+    
+    local isReanalyzeDisabled = ItemEvaluator.isOptimizing or ItemEvaluator:IsEquipQueueActive() or InCombatLockdown()
+    self:SetButtonDisabled(recsContainer.reanalyzeBtn, isReanalyzeDisabled)
+    
+    local titleText = L.RECOMMENDATIONS or "Recommendations"
+    if ItemEvaluator.isOptimizing then
+        local analyzedStr = string.format(L.ANALYZED_COMBINATIONS or "Analyzed: %d", ItemEvaluator.analyzedCombinations or 0)
+        titleText = string.format("%s (Расчет: %d%%, %s)", titleText, ItemEvaluator.optimizationProgress, analyzedStr)
+    elseif ItemEvaluator.hasOptimizationRun and (ItemEvaluator.analyzedCombinations or 0) > 0 then
+        local analyzedStr = string.format(L.ANALYZED_COMBINATIONS or "Analyzed: %d", ItemEvaluator.analyzedCombinations or 0)
+        titleText = string.format("%s (%s)", titleText, analyzedStr)
     end
+    recsContainer.title:SetText(titleText)
+end
+
+local function CreateTooltipArea(row, strString, itemLink, slotId, isCurrent, rec)
+    if not itemLink then return end
+    local frameTip = CreateFrame("Button", nil, row)
+    frameTip:SetAllPoints(strString)
+    frameTip:SetScript("OnEnter", function(selfTip)
+        GameTooltip:SetOwner(selfTip, "ANCHOR_RIGHT")
+        if isCurrent then
+            GameTooltip:SetInventoryItem("player", slotId)
+        elseif rec.equippedSlot then
+            GameTooltip:SetInventoryItem("player", rec.equippedSlot)
+        elseif rec.bag and rec.slot then
+            GameTooltip:SetBagItem(rec.bag, rec.slot)
+        else
+            GameTooltip:SetHyperlink(itemLink)
+        end
+        GameTooltip:Show()
+    end)
+    frameTip:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+end
+
+function UI:CreateRecRow(recsChild, slotInfo, rec, offsetY)
+    local row = CreateFrame("Frame", nil, recsChild)
+    row:SetSize(760, 26)
+    row:SetPoint("TOPLEFT", recsChild, "TOPLEFT", 0, -offsetY)
+    
+    local lblSlot = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    lblSlot:SetPoint("LEFT", row, "LEFT", 0, 0)
+    lblSlot:SetText(string.format("|cffeedd88%s:|r", L[slotInfo.label] or slotInfo.name))
+    lblSlot:SetWidth(120)
+    lblSlot:SetJustifyH("LEFT")
+    
+    local lblCurrent = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    lblCurrent:SetPoint("LEFT", row, "LEFT", 130, 0)
+    lblCurrent:SetText(rec.currentLink or ("|cff888888" .. (L.EMPTY or "Empty") .. "|r"))
+    lblCurrent:SetWidth(240)
+    lblCurrent:SetJustifyH("LEFT")
+    
+    local lblArrow = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    lblArrow:SetPoint("LEFT", row, "LEFT", 380, 0)
+    lblArrow:SetText(">")
+    lblArrow:SetWidth(30)
+    
+    local lblRec = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    lblRec:SetPoint("LEFT", row, "LEFT", 420, 0)
+    lblRec:SetText(rec.recommendedLink or ("|cff888888" .. (L.EMPTY or "Empty") .. "|r"))
+    lblRec:SetWidth(240)
+    lblRec:SetJustifyH("LEFT")
+    
+    local lblDiff = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    lblDiff:SetPoint("LEFT", row, "LEFT", 670, 0)
+    
+    local diffText = ""
+    if rec.ilvlDiff > 0 then
+        diffText = string.format("|cff00ff00+%d ilvl|r", rec.ilvlDiff)
+    elseif rec.ilvlDiff < 0 then
+        diffText = string.format("|cffff0000%d ilvl|r", rec.ilvlDiff)
+    else
+        diffText = "|cff8888880 ilvl|r"
+    end
+    lblDiff:SetText(diffText)
+    lblDiff:SetWidth(80)
+    lblDiff:SetJustifyH("RIGHT")
+    
+    CreateTooltipArea(row, lblCurrent, rec.currentLink, slotInfo.id, true, rec)
+    CreateTooltipArea(row, lblRec, rec.recommendedLink, slotInfo.id, false, rec)
+end
+
+function UI:DrawRecsRows(recsChild, recs)
+    local offsetY = 0
+    local count = 0
+    for _, slotInfo in ipairs(Core.Slots) do
+        local rec = recs[slotInfo.id]
+        if rec then
+            count = count + 1
+            self:CreateRecRow(recsChild, slotInfo, rec, offsetY)
+            offsetY = offsetY + 28
+        end
+    end
+    return offsetY, count
+end
+
+function UI:DrawRecsEquipButton(recsContainer, recs)
+    if not recsContainer.equipBtn then
+        local equipBtn = self:CreateStyledButton(recsContainer, 790, 35, L.EQUIP_BEST or "Equip Best")
+        equipBtn:SetPoint("TOPLEFT", recsContainer.primaryPanel, "BOTTOMLEFT", 0, -15)
+        recsContainer.equipBtn = equipBtn
+    end
+    recsContainer.equipBtn:Show()
+    local equipBtn = recsContainer.equipBtn
+    
+    if not recsContainer.warningText then
+        local warningText = recsContainer:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        warningText:SetPoint("TOPLEFT", equipBtn, "BOTTOMLEFT", 5, -5)
+        warningText:SetPoint("TOPRIGHT", equipBtn, "BOTTOMRIGHT", -5, -5)
+        warningText:SetJustifyH("CENTER")
+        warningText:SetTextColor(0.9, 0.3, 0.3)
+        recsContainer.warningText = warningText
+    end
+    recsContainer.warningText:Show()
+    recsContainer.warningText:SetText(L.BUFF_WARNING or "Warning: The optimizer may not work correctly if you are not in the correct specialization form or under the effect of temporary stat-modifying auras.")
+    
+    local function UpdateButtonState()
+        if InCombatLockdown() then
+            self:SetButtonDisabled(equipBtn, true)
+            equipBtn.text:SetText(L.IN_COMBAT or "In Combat")
+        elseif ItemEvaluator.isOptimizing then
+            self:SetButtonDisabled(equipBtn, true)
+            equipBtn.text:SetText(string.format("Оптимизация... (%d%%)", ItemEvaluator.optimizationProgress))
+        elseif ItemEvaluator:IsEquipQueueActive() then
+            self:SetButtonDisabled(equipBtn, true)
+            equipBtn.text:SetText(L.EQUIPPING or "Equipping...")
+        else
+            local hasRecs = false
+            for _ in pairs(recs) do hasRecs = true; break end
+            self:SetButtonDisabled(equipBtn, not hasRecs)
+            equipBtn.text:SetText(L.EQUIP_BEST or "Equip Best")
+        end
+    end
+    
+    UpdateButtonState()
+    equipBtn:SetScript("OnClick", function()
+        ItemEvaluator:EquipRecommended(recs)
+        UpdateButtonState()
+    end)
+end
+
+function UI:DrawRecs()
+    local recsContainer = self.mainWindow.recsContainer
+    local recs, predictedStats = ItemEvaluator:Optimize()
+    
+    -- 1. Title and Reanalyze
+    self:DrawRecsTitleAndReanalyze(recsContainer, recs)
     
     -- 2. Create scroll frame once
     if not recsContainer.recsScroll then
@@ -66,97 +206,8 @@ function UI:DrawRecs()
     -- Clear dynamic rows inside child scroll
     self:ClearContainer(recsChild)
     
-    local recs, predictedStats = ItemEvaluator:Optimize()
-    
-    -- Update title
-    local titleText = L.RECOMMENDATIONS or "Recommendations"
-    if ItemEvaluator.isOptimizing then
-        local analyzedStr = string.format(L.ANALYZED_COMBINATIONS or "Analyzed: %d", ItemEvaluator.analyzedCombinations or 0)
-        titleText = string.format("%s (Расчет: %d%%, %s)", titleText, ItemEvaluator.optimizationProgress, analyzedStr)
-    elseif ItemEvaluator.hasOptimizationRun and (ItemEvaluator.analyzedCombinations or 0) > 0 then
-        local analyzedStr = string.format(L.ANALYZED_COMBINATIONS or "Analyzed: %d", ItemEvaluator.analyzedCombinations or 0)
-        titleText = string.format("%s (%s)", titleText, analyzedStr)
-    end
-    recsContainer.title:SetText(titleText)
-    
-    local offsetY = 0
-    local count = 0
-    
-    for _, slotInfo in ipairs(Core.Slots) do
-        local slotId = slotInfo.id
-        local rec = recs[slotId]
-        
-        if rec then
-            count = count + 1
-            local row = CreateFrame("Frame", nil, recsChild)
-            row:SetSize(760, 26)
-            row:SetPoint("TOPLEFT", recsChild, "TOPLEFT", 0, -offsetY)
-            
-            local lblSlot = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            lblSlot:SetPoint("LEFT", row, "LEFT", 0, 0)
-            lblSlot:SetText(string.format("|cffeedd88%s:|r", L[slotInfo.label] or slotInfo.name))
-            lblSlot:SetWidth(120)
-            lblSlot:SetJustifyH("LEFT")
-            
-            local lblCurrent = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            lblCurrent:SetPoint("LEFT", row, "LEFT", 130, 0)
-            lblCurrent:SetText(rec.currentLink or ("|cff888888" .. (L.EMPTY or "Empty") .. "|r"))
-            lblCurrent:SetWidth(240)
-            lblCurrent:SetJustifyH("LEFT")
-            
-            local lblArrow = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            lblArrow:SetPoint("LEFT", row, "LEFT", 380, 0)
-            lblArrow:SetText(">")
-            lblArrow:SetWidth(30)
-            
-            local lblRec = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            lblRec:SetPoint("LEFT", row, "LEFT", 420, 0)
-            lblRec:SetText(rec.recommendedLink or ("|cff888888" .. (L.EMPTY or "Empty") .. "|r"))
-            lblRec:SetWidth(240)
-            lblRec:SetJustifyH("LEFT")
-            
-            local lblDiff = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            lblDiff:SetPoint("LEFT", row, "LEFT", 670, 0)
-            
-            local diffText = ""
-            if rec.ilvlDiff > 0 then
-                diffText = string.format("|cff00ff00+%d ilvl|r", rec.ilvlDiff)
-            elseif rec.ilvlDiff < 0 then
-                diffText = string.format("|cffff0000%d ilvl|r", rec.ilvlDiff)
-            else
-                diffText = "|cff8888880 ilvl|r"
-            end
-            lblDiff:SetText(diffText)
-            lblDiff:SetWidth(80)
-            lblDiff:SetJustifyH("RIGHT")
-            
-            local function CreateTooltipArea(strString, itemLink, isCurrent)
-                if not itemLink then return end
-                local frameTip = CreateFrame("Button", nil, row)
-                frameTip:SetAllPoints(strString)
-                frameTip:SetScript("OnEnter", function(selfTip)
-                    GameTooltip:SetOwner(selfTip, "ANCHOR_RIGHT")
-                    if isCurrent then
-                        GameTooltip:SetInventoryItem("player", slotId)
-                    elseif rec.equippedSlot then
-                        GameTooltip:SetInventoryItem("player", rec.equippedSlot)
-                    elseif rec.bag and rec.slot then
-                        GameTooltip:SetBagItem(rec.bag, rec.slot)
-                    else
-                        GameTooltip:SetHyperlink(itemLink)
-                    end
-                    GameTooltip:Show()
-                end)
-                frameTip:SetScript("OnLeave", function()
-                    GameTooltip:Hide()
-                end)
-            end
-            CreateTooltipArea(lblCurrent, rec.currentLink, true)
-            CreateTooltipArea(lblRec, rec.recommendedLink, false)
-            
-            offsetY = offsetY + 28
-        end
-    end
+    -- Draw rows
+    local offsetY, count = self:DrawRecsRows(recsChild, recs)
     
     if count == 0 and not ItemEvaluator.isOptimizing then
         if not recsContainer.noRecsText then
@@ -184,40 +235,5 @@ function UI:DrawRecs()
     recsChild:SetHeight(offsetY)
     
     self:DrawRecsStatsPanels(recsContainer, predictedStats)
-    
-    -- 4. Create equipBtn once
-    if not recsContainer.equipBtn then
-        local equipBtn = self:CreateStyledButton(recsContainer, 790, 35, L.EQUIP_BEST or "Equip Best")
-        equipBtn:SetPoint("TOPLEFT", recsContainer.primaryPanel, "BOTTOMLEFT", 0, -15)
-        recsContainer.equipBtn = equipBtn
-    end
-    recsContainer.equipBtn:Show()
-    local equipBtn = recsContainer.equipBtn
-    
-    local function UpdateButtonState()
-        if InCombatLockdown() then
-            self:SetButtonDisabled(equipBtn, true)
-            equipBtn.text:SetText(L.IN_COMBAT or "In Combat")
-        elseif ItemEvaluator.isOptimizing then
-            self:SetButtonDisabled(equipBtn, true)
-            equipBtn.text:SetText(string.format("Оптимизация... (%d%%)", ItemEvaluator.optimizationProgress))
-        elseif ItemEvaluator:IsEquipQueueActive() then
-            self:SetButtonDisabled(equipBtn, true)
-            equipBtn.text:SetText(L.EQUIPPING or "Equipping...")
-        else
-            local hasRecs = false
-            for _ in pairs(recs) do
-                hasRecs = true
-                break
-            end
-            self:SetButtonDisabled(equipBtn, not hasRecs)
-            equipBtn.text:SetText(L.EQUIP_BEST or "Equip Best")
-        end
-    end
-    
-    UpdateButtonState()
-    equipBtn:SetScript("OnClick", function()
-        ItemEvaluator:EquipRecommended(recs)
-        UpdateButtonState()
-    end)
+    self:DrawRecsEquipButton(recsContainer, recs)
 end

@@ -9,6 +9,7 @@ function ItemEvaluator:GatherActiveRulesAndRatings(profile)
     if profile.rules then
         for _, r in ipairs(profile.rules) do
             if r.enabled then
+                r.targetRating = r.value or 0
                 table.insert(activeRules, r)
             end
         end
@@ -177,7 +178,8 @@ end
 function ItemEvaluator:PruneNonInteractiveSlots(candidates, activeRules)
     local hasInteractions = false
     for _, rule in ipairs(activeRules) do
-        if rule.op == ">=" then
+        local targetVal = rule.value or 0
+        if targetVal > 0 then
             hasInteractions = true
             break
         end

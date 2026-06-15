@@ -210,12 +210,17 @@ eventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
 eventFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 eventFrame:SetScript("OnEvent", function(_, event, ...)
     if UI:IsWindowOpen() then
-        if not ItemEvaluator:IsEquipQueueActive() then
-            if mainWindow.selectedTab == "recs" or mainWindow.selectedTab == "caps" then
-                ItemEvaluator:StartOptimize()
-                UI:Refresh()
-            else
-                ItemEvaluator.hasOptimizationRun = false
+        if event == "PLAYER_REGEN_DISABLED" then
+            ItemEvaluator:StopActiveOptimization()
+            UI:Refresh()
+        elseif not InCombatLockdown() then
+            if not ItemEvaluator:IsEquipQueueActive() then
+                if mainWindow.selectedTab == "recs" or mainWindow.selectedTab == "caps" then
+                    ItemEvaluator:StartOptimize()
+                    UI:Refresh()
+                else
+                    ItemEvaluator.hasOptimizationRun = false
+                end
             end
         end
     end

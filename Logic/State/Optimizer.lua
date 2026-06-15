@@ -97,12 +97,18 @@ end
 
 -- Perform background search for best items combo
 function ItemEvaluator:StartOptimize(force)
+    if InCombatLockdown and InCombatLockdown() then
+        self:StopActiveOptimization()
+        return
+    end
+    
     if self.isOptimizing and not force then
         return
     end
     
     self:StopActiveOptimization()
     
+    self.activePrimaryStat = self.GetActivePrimaryStat and self:GetActivePrimaryStat()
     self.activeBasePct = self:GetBaseStatPercentages()
     
     local profile = Core.activeProfile

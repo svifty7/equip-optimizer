@@ -122,61 +122,34 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                     isPercent = true
                 end
                 
-                local displayText = baseText
-                if isPercent then
-                    local cleanText = baseText:gsub(" ?%(%%%)", "")
-                    displayText = string.format("%s (%.2f%% / %d)", cleanText, currentPct, currentVal)
-                end
+                local cleanText = baseText:gsub(" ?%(%%%)", "")
+                local displayText = string.format("%s (%d)", cleanText, currentVal)
                 
                 local lbl = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
                 lbl:SetPoint("LEFT", row, "LEFT", 30, 0)
                 lbl:SetText(displayText)
-                lbl:SetWidth(165)
+                lbl:SetWidth(185)
                 lbl:SetJustifyH("LEFT")
                 
-                local ddOp = self:CreateDropdown(row, 65, "")
-                ddOp:SetPoint("LEFT", row, "LEFT", 200, 0)
-                
-                local displayOp = rule.op or "MAX"
-                ddOp.text:SetText(displayOp)
-                
                 local valFrame, valEB = self:CreateEditBox(row, 45, 20, "")
-                valFrame:SetPoint("LEFT", ddOp, "RIGHT", 5, 0)
-                valEB:SetText(tostring(rule.value or 0))
-                
-                local function UpdateValueState()
-                    local op = rule.op or "MAX"
-                    if op == "MAX" then
-                        valEB:SetEnabled(false)
-                        valEB:SetTextColor(0.4, 0.4, 0.4, 1)
-                        valEB:SetText("0")
-                    else
-                        valEB:SetEnabled(true)
-                        valEB:SetTextColor(1, 1, 1, 1)
-                        valEB:SetText(tostring(rule.value or 0))
-                    end
-                end
-                UpdateValueState()
+                valFrame:SetPoint("LEFT", row, "LEFT", 220, 0)
                 
                 local function UpdateRowState()
                     if not cb:GetChecked() then
-                        ddOp:Disable()
-                        ddOp:SetBackdropColor(0.08, 0.08, 0.08, 0.6)
-                        ddOp.text:SetTextColor(0.4, 0.4, 0.4, 1)
                         valEB:SetEnabled(false)
                         valEB:SetTextColor(0.4, 0.4, 0.4, 1)
+                        valEB:SetText("")
                     else
-                        ddOp:Enable()
-                        ddOp:SetBackdropColor(0, 0, 0, 0.6)
-                        ddOp.text:SetTextColor(1, 0.82, 0, 1)
-                        UpdateValueState()
+                        valEB:SetEnabled(true)
+                        valEB:SetTextColor(1, 1, 1, 1)
+                        valEB:SetText(rule.value and tostring(rule.value) or "")
                     end
                 end
                 UpdateRowState()
                 
                 local btnUp = CreateFrame("Button", nil, row)
                 btnUp:SetSize(22, 22)
-                btnUp:SetPoint("LEFT", valFrame, "RIGHT", 5, 0)
+                btnUp:SetPoint("LEFT", valFrame, "RIGHT", 15, 0)
                 btnUp:SetNormalTexture("Interface\\Buttons\\UI-ScrollBar-ScrollUpButton-Up")
                 btnUp:SetPushedTexture("Interface\\Buttons\\UI-ScrollBar-ScrollUpButton-Down")
                 btnUp:SetDisabledTexture("Interface\\Buttons\\UI-ScrollBar-ScrollUpButton-Disabled")
@@ -191,7 +164,7 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                 
                 local btnDown = CreateFrame("Button", nil, row)
                 btnDown:SetSize(22, 22)
-                btnDown:SetPoint("LEFT", btnUp, "RIGHT", 2, 0)
+                btnDown:SetPoint("LEFT", btnUp, "RIGHT", 5, 0)
                 btnDown:SetNormalTexture("Interface\\Buttons\\UI-ScrollBar-ScrollDownButton-Up")
                 btnDown:SetPushedTexture("Interface\\Buttons\\UI-ScrollBar-ScrollDownButton-Down")
                 btnDown:SetDisabledTexture("Interface\\Buttons\\UI-ScrollBar-ScrollDownButton-Disabled")
@@ -204,30 +177,42 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                 
                 cb:SetScript("OnClick", function(selfCb)
                     rule.enabled = selfCb:GetChecked()
+                    if not rule.enabled then
+                        rule.value = nil
+                    end
                     UpdateRowState()
                     self:OnSettingsChanged()
                 end)
                 
-                ddOp:SetScript("OnClick", function()
-                    local opList = {
-                        [">="] = "Минимум (%)",
-                        ["MAX"] = "Максимизировать"
-                    }
-                    self:OpenDropdownMenu(ddOp, opList, rule.op or "MAX", function(key)
-                        rule.op = key
-                        ddOp.text:SetText(key)
-                        UpdateValueState()
-                        self:OnSettingsChanged()
-                    end)
-                end)
+                local function ValidateValue(selfEb)
+                    if not cb:GetChecked() then
+                        rule.value = nil
+                        selfEb:SetText("")
+                        return
+                    end
+                    local valStr = selfEb:GetText()
+                    if valStr == "" then
+                        rule.value = nil
+                        selfEb:SetText("")
+                        return
+                    end
+                    local val = tonumber(valStr)
+                    if not val or val <= 0 then
+                        rule.value = nil
+                        selfEb:SetText("")
+                    else
+                        rule.value = val
+                        selfEb:SetText(tostring(val))
+                    end
+                end
                 
                 valEB:SetScript("OnEnterPressed", function(selfEb)
-                    rule.value = tonumber(selfEb:GetText()) or 0
+                    ValidateValue(selfEb)
                     selfEb:ClearFocus()
                     self:OnSettingsChanged()
                 end)
                 valEB:SetScript("OnEditFocusLost", function(selfEb)
-                    rule.value = tonumber(selfEb:GetText()) or 0
+                    ValidateValue(selfEb)
                     self:OnSettingsChanged()
                 end)
                 

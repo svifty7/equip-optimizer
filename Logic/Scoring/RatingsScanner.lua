@@ -157,33 +157,26 @@ function ItemEvaluator:GetEquippedGemsAndEnchantsStats()
     return stats
 end
 
+local function GetPlayerPrimaryStats(eqClean, gemsEnchants)
+    if UnitStat then
+        return select(2, UnitStat("player", 1)) or 0,
+               select(2, UnitStat("player", 2)) or 0,
+               select(2, UnitStat("player", 3)) or 0,
+               select(2, UnitStat("player", 4)) or 0
+    end
+    return (eqClean.STAT_STRENGTH or 0) + (gemsEnchants.STAT_STRENGTH or 0),
+           (eqClean.STAT_AGILITY or 0) + (gemsEnchants.STAT_AGILITY or 0),
+           (eqClean.STAT_STAMINA or 0) + (gemsEnchants.STAT_STAMINA or 0),
+           (eqClean.STAT_INTELLECT or 0) + (gemsEnchants.STAT_INTELLECT or 0)
+end
+
 -- Get player current stats including gems/enchants but excluding temporary buffs
 function ItemEvaluator:GetPlayerCurrentStats()
     local eqClean = self:GetEquippedStats()
     local gemsEnchants = self:GetEquippedGemsAndEnchantsStats()
     
-    local intellect = 0
-    local agility = 0
-    local strength = 0
-    local stamina = 0
-    local armor = 0
-    
-    if UnitStat then
-        local baseStr = select(1, UnitStat("player", 1)) or 0
-        local baseAgi = select(1, UnitStat("player", 2)) or 0
-        local baseSta = select(1, UnitStat("player", 3)) or 0
-        local baseInt = select(1, UnitStat("player", 4)) or 0
-        
-        strength = baseStr + (eqClean.STAT_STRENGTH or 0) + (gemsEnchants.STAT_STRENGTH or 0)
-        agility = baseAgi + (eqClean.STAT_AGILITY or 0) + (gemsEnchants.STAT_AGILITY or 0)
-        stamina = baseSta + (eqClean.STAT_STAMINA or 0) + (gemsEnchants.STAT_STAMINA or 0)
-        intellect = baseInt + (eqClean.STAT_INTELLECT or 0) + (gemsEnchants.STAT_INTELLECT or 0)
-    end
-    
-    if UnitArmor then
-        local baseArmor = select(1, UnitArmor("player")) or 0
-        armor = baseArmor + (eqClean.STAT_ARMOR or 0) + (gemsEnchants.STAT_ARMOR or 0)
-    end
+    local str, agi, sta, intel = GetPlayerPrimaryStats(eqClean, gemsEnchants)
+    local armor = UnitArmor and select(2, UnitArmor("player")) or ((eqClean.STAT_ARMOR or 0) + (gemsEnchants.STAT_ARMOR or 0))
     
     local avgIlvl = 0
     if GetAverageItemLevel then
@@ -207,10 +200,10 @@ function ItemEvaluator:GetPlayerCurrentStats()
         STAT_LEECH = leech,
         STAT_AVOIDANCE = avoidance,
         STAT_SPEED = speed,
-        STAT_INTELLECT = intellect,
-        STAT_AGILITY = agility,
-        STAT_STRENGTH = strength,
-        STAT_STAMINA = stamina,
+        STAT_INTELLECT = intel,
+        STAT_AGILITY = agi,
+        STAT_STRENGTH = str,
+        STAT_STAMINA = sta,
         STAT_ARMOR = armor,
         STAT_ILVL = avgIlvl,
     }

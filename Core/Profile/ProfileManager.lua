@@ -53,16 +53,13 @@ function Core:ValidateAndMigrateProfile()
         if r.enabled == nil then
             r.enabled = true
         end
-        if r.op == "max" or r.op == "MAX" then
-            r.op = "MAX"
-        elseif r.op == ">=" then
-            r.op = ">="
-        else
-            if r.op == "min" or r.op == "MIN" then
-                r.op = "MAX"
-            else
-                r.op = ">="
+        r.op = nil
+        if r.stat ~= "STAT_ILVL" then
+            if not r.enabled or (r.value and r.value <= 0) then
+                r.value = nil
             end
+        else
+            r.value = 0
         end
     end
     
@@ -70,10 +67,9 @@ function Core:ValidateAndMigrateProfile()
     
     local ilvlRule = hasStat["STAT_ILVL"]
     if not ilvlRule then
-        ilvlRule = { stat = "STAT_ILVL", enabled = true, op = "MAX", value = 0 }
+        ilvlRule = { stat = "STAT_ILVL", enabled = true, value = 0 }
     else
         ilvlRule.enabled = true
-        ilvlRule.op = "MAX"
         ilvlRule.value = 0
     end
     table.insert(newRules, ilvlRule)
@@ -103,8 +99,9 @@ function Core:ValidateAndMigrateProfile()
         end
         if not found then
             local isTertiary = (reqStat == "STAT_LEECH" or reqStat == "STAT_AVOIDANCE" or reqStat == "STAT_SPEED")
+            
             if isTertiary then
-                table.insert(newRules, { stat = reqStat, enabled = false, op = "MAX", value = 0 })
+                table.insert(newRules, { stat = reqStat, enabled = false })
             else
                 -- Insert secondary stat before the first tertiary stat to maintain grouping
                 local insertIdx = #newRules + 1
@@ -114,14 +111,14 @@ function Core:ValidateAndMigrateProfile()
                         break
                     end
                 end
-                table.insert(newRules, insertIdx, { stat = reqStat, enabled = false, op = "MAX", value = 0 })
+                table.insert(newRules, insertIdx, { stat = reqStat, enabled = false })
             end
         end
     end
     
     profile.rules = newRules
 end
-
+ 
 function Core:GetSpecConfigKey()
     local specIndex = GetSpecialization() or 1
     local configID = 0
@@ -130,7 +127,7 @@ function Core:GetSpecConfigKey()
     end
     return string.format("%d_%d", specIndex, configID)
 end
-
+ 
 function Core:UpdateProfile()
     if not self.db then return end
     
@@ -151,14 +148,14 @@ function Core:UpdateProfile()
     if not self.db.char.profiles[profileName] then
         self.db.char.profiles[profileName] = {
             rules = {
-                { stat = "STAT_ILVL", enabled = true, op = "MAX", value = 0 },
-                { stat = "STAT_HASTE", enabled = true, op = "MAX", value = 0 },
-                { stat = "STAT_VERSATILITY", enabled = true, op = "MAX", value = 0 },
-                { stat = "STAT_CRIT", enabled = true, op = "MAX", value = 0 },
-                { stat = "STAT_MASTERY", enabled = true, op = "MAX", value = 0 },
-                { stat = "STAT_LEECH", enabled = false, op = "MAX", value = 0 },
-                { stat = "STAT_AVOIDANCE", enabled = false, op = "MAX", value = 0 },
-                { stat = "STAT_SPEED", enabled = false, op = "MAX", value = 0 },
+                { stat = "STAT_ILVL", enabled = true, value = 0 },
+                { stat = "STAT_HASTE", enabled = true },
+                { stat = "STAT_VERSATILITY", enabled = true },
+                { stat = "STAT_CRIT", enabled = true },
+                { stat = "STAT_MASTERY", enabled = true },
+                { stat = "STAT_LEECH", enabled = false },
+                { stat = "STAT_AVOIDANCE", enabled = false },
+                { stat = "STAT_SPEED", enabled = false },
             },
             lockedSlots = {},
             requiredSets = {}

@@ -18,6 +18,14 @@ end
 local loadHelper = loadTestFile("TestScoringHelper.lua")
 loadHelper(ItemEvaluator)
 
+-- Load and initialize real Comparator
+local testAddonTable = { ItemEvaluator = ItemEvaluator }
+local comparatorFunc = loadfile("Logic/Scoring/Comparator.lua")
+assert(comparatorFunc, "Comparator.lua should load successfully")
+comparatorFunc("EquipOptimizer", testAddonTable)
+ItemEvaluator.activePrimaryStat = nil -- mock active primary stat for test
+
+
 -- TEST RUNNER
 local function RunTests()
     print("Starting optimization algorithm simulation tests...\n")
@@ -28,6 +36,11 @@ local function RunTests()
     local rules = mockData.rules
     local equipped = mockData.equipped
     local candidates = mockData.candidates
+    
+    -- Precalculate targetRating for rules in test
+    for _, r in ipairs(rules) do
+        r.targetRating = r.value or 0
+    end
     
     -- Run combination search over optimizable slots 11 and 12
     local bestCombination = nil
@@ -109,7 +122,7 @@ local function RunTests()
         Core = {
             activeProfile = {
                 rules = {
-                    { stat = "STAT_HASTE", op = ">=", value = 30.0, enabled = true } -- Haste is 27.09%, so this should be unmet
+                    { stat = "STAT_HASTE", value = ItemEvaluator:ConvertPercentToRating("STAT_HASTE", 30.0), enabled = true } -- Haste is 27.09%, so this should be unmet
                 },
                 lockedSlots = {},
                 requiredSets = {}
@@ -140,7 +153,7 @@ local function RunTests()
     
     local analysis = ItemEvaluator:AnalyzeCaps()
     assert(#analysis.unmet == 1, "Should identify Haste as unmet soft-cap")
-    assert(analysis.unmet[1].stat == "STAT_HASTE", "Unmet cap stat should be Haste")
+    assert(analysis.unmet[1].rule.stat == "STAT_HASTE", "Unmet cap stat should be Haste")
     assert(#analysis.slots > 0, "Slots list should be returned")
     
     local f1, f2
@@ -151,7 +164,8 @@ local function RunTests()
     
     assert(f1 ~= nil, "Finger 1 should be analyzed")
     assert(f2 ~= nil, "Finger 2 should be analyzed")
-    assert(#f1.extraStats == 0, "Finger 1 has Haste, so it has 0 extra stats")
+    assert(#f1.extraStats == 1, "Finger 1 has Haste and Crit, so it has 1 extra stat (Crit)")
+    assert(f1.extraStats[1] == "STAT_CRIT", "Extra stat on Finger 1 should be Crit")
     assert(#f2.extraStats == 1, "Finger 2 has Mastery (not needed in this test), so it has 1 extra stat")
     assert(f2.extraStats[1] == "STAT_MASTERY", "Extra stat on Finger 2 should be Mastery")
     
