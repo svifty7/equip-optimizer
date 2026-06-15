@@ -137,6 +137,7 @@ function ItemEvaluator:ProcessNextEquip()
         -- Cancel queue if combat starts mid-equip
         equipQueue = {}
         equipQueueTargetLinks = {}
+        self.hasOptimizationRun = false
         local UI = addonTable.UI
         if UI and UI.IsWindowOpen and UI:IsWindowOpen() then
             UI:Refresh()
@@ -145,6 +146,7 @@ function ItemEvaluator:ProcessNextEquip()
     end
     
     if #equipQueue == 0 then
+        self.hasOptimizationRun = false
         local UI = addonTable.UI
         if UI and UI.IsWindowOpen and UI:IsWindowOpen() then
             UI:Refresh()

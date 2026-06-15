@@ -23,31 +23,37 @@ Libs\AceGUI-3.0\AceGUI-3.0.xml
 Locales\Localization.lua
 
 # Core & Profile Management
-Core\Core.lua
-Core\ProfileManager.lua
-Core\ImportExport.lua
+Core\Lifecycle\Core.lua
+Core\Profile\ProfileManager.lua
+Core\Profile\ImportExport.lua
 
 # Logic & Optimization
-Logic\Ratings.lua
-Logic\Comparator.lua
-Logic\BagScanner.lua
-Logic\Optimizer.lua
-Logic\EquipQueue.lua
-Logic\GemDB.lua
-Logic\GemEvaluator.lua
+Logic\Scoring\Ratings.lua
+Logic\Scoring\RatingsScanner.lua
+Logic\Scoring\Comparator.lua
+Logic\State\BagScanner.lua
+Logic\Permutation\SearchEngineHelper.lua
+Logic\Permutation\SearchEngine.lua
+Logic\State\OptimizerSetup.lua
+Logic\State\Optimizer.lua
+Logic\Permutation\EquipQueue.lua
+Logic\State\GemDB.lua
+Logic\Scoring\GemEvaluator.lua
 
 # User Interface
 UI\Widgets\Dropdown.lua
 UI\Widgets\Basic.lua
-UI\MainFrame.lua
-UI\Minimap.lua
-UI\SettingsTab\ProfilePanel.lua
-UI\SettingsTab\ReservedSlots.lua
-UI\SettingsTab\StatRules.lua
-UI\SettingsTab\SetRequirements.lua
-UI\SettingsTab.lua
-UI\RecsTab.lua
-UI\GemsTab.lua
+UI\Views\MainFrame.lua
+UI\Settings\Minimap.lua
+UI\Settings\ProfilePanel.lua
+UI\Settings\ReservedSlots.lua
+UI\Settings\StatRules.lua
+UI\Settings\SetRequirements.lua
+UI\Settings\SettingsTab.lua
+UI\Views\RecsStatsPanel.lua
+UI\Views\RecsTab.lua
+UI\Views\GemsRecommender.lua
+UI\Views\GemsTab.lua
 
 # Theme Skinning
 Skins\ElvUI_Skin.lua
