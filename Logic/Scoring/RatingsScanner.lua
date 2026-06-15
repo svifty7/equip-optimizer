@@ -24,11 +24,11 @@ function ItemEvaluator:GetCleanItemLink(itemLink)
     end
     
     if #parts >= 6 then
-        parts[2] = "" -- enchantID
-        parts[3] = "" -- gemID1
-        parts[4] = "" -- gemID2
-        parts[5] = "" -- gemID3
-        parts[6] = "" -- gemID4
+        parts[2] = "0" -- enchantID
+        parts[3] = "0" -- gemID1
+        parts[4] = "0" -- gemID2
+        parts[5] = "0" -- gemID3
+        parts[6] = "0" -- gemID4
     end
     
     local cleanItemString = table.concat(parts, ":")
@@ -191,14 +191,22 @@ function ItemEvaluator:GetPlayerCurrentStats()
         avgIlvl = val or 0
     end
     
+    local crit = GetCombatRating and GetCombatRating(self.CR_CRIT) or ((eqClean.STAT_CRIT or 0) + (gemsEnchants.STAT_CRIT or 0))
+    local haste = GetCombatRating and GetCombatRating(self.CR_HASTE) or ((eqClean.STAT_HASTE or 0) + (gemsEnchants.STAT_HASTE or 0))
+    local mastery = GetCombatRating and GetCombatRating(self.CR_MASTERY) or ((eqClean.STAT_MASTERY or 0) + (gemsEnchants.STAT_MASTERY or 0))
+    local versatility = GetCombatRating and GetCombatRating(self.CR_VERSATILITY) or ((eqClean.STAT_VERSATILITY or 0) + (gemsEnchants.STAT_VERSATILITY or 0))
+    local leech = GetCombatRating and GetCombatRating(self.CR_LIFESTEAL) or ((eqClean.STAT_LEECH or 0) + (gemsEnchants.STAT_LEECH or 0))
+    local avoidance = GetCombatRating and GetCombatRating(self.CR_AVOIDANCE) or ((eqClean.STAT_AVOIDANCE or 0) + (gemsEnchants.STAT_AVOIDANCE or 0))
+    local speed = GetCombatRating and GetCombatRating(self.CR_SPEED) or ((eqClean.STAT_SPEED or 0) + (gemsEnchants.STAT_SPEED or 0))
+
     return {
-        STAT_CRIT = (eqClean.STAT_CRIT or 0) + (gemsEnchants.STAT_CRIT or 0),
-        STAT_HASTE = (eqClean.STAT_HASTE or 0) + (gemsEnchants.STAT_HASTE or 0),
-        STAT_MASTERY = (eqClean.STAT_MASTERY or 0) + (gemsEnchants.STAT_MASTERY or 0),
-        STAT_VERSATILITY = (eqClean.STAT_VERSATILITY or 0) + (gemsEnchants.STAT_VERSATILITY or 0),
-        STAT_LEECH = (eqClean.STAT_LEECH or 0) + (gemsEnchants.STAT_LEECH or 0),
-        STAT_AVOIDANCE = (eqClean.STAT_AVOIDANCE or 0) + (gemsEnchants.STAT_AVOIDANCE or 0),
-        STAT_SPEED = (eqClean.STAT_SPEED or 0) + (gemsEnchants.STAT_SPEED or 0),
+        STAT_CRIT = crit,
+        STAT_HASTE = haste,
+        STAT_MASTERY = mastery,
+        STAT_VERSATILITY = versatility,
+        STAT_LEECH = leech,
+        STAT_AVOIDANCE = avoidance,
+        STAT_SPEED = speed,
         STAT_INTELLECT = intellect,
         STAT_AGILITY = agility,
         STAT_STRENGTH = strength,

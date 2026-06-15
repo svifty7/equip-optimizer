@@ -31,7 +31,9 @@ function ItemEvaluator:CalculateScore(stats, rules)
             if rule.op == "MAX" then
                 score = score + (val * weight)
             else -- rule.op == ">="
-                local targetRating = self:ConvertPercentToRating(rule.stat, rule.value or 0)
+                local base = self.activeBasePct and self.activeBasePct[rule.stat] or 0
+                local targetPercent = math.max(0, (rule.value or 0) - base)
+                local targetRating = self:ConvertPercentToRating(rule.stat, targetPercent)
                 if val <= targetRating then
                     -- High value while below cap
                     score = score + (val * weight)

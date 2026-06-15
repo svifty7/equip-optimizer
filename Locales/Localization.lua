@@ -107,6 +107,27 @@ local enUS = {
     Slot_TRINKET2 = "Trinket 2",
     Slot_MAINHAND = "Main Hand",
     Slot_OFFHAND = "Off Hand",
+
+    -- Cap analysis
+    CAPS = "Caps",
+    CAPS_ANALYSIS = "Soft-Cap Analysis",
+    NO_CAPS_UNMET = "All soft-caps are successfully met!",
+    MISSING_CAP_FORMAT = "%s: missing %.2f%% (%d rating)",
+    LOCK_REASON = "Slot is locked",
+    BREAK_SET_REASON = "Breaks set: %s",
+    TRADEOFF_REASON = "Stats tradeoff",
+    CAPS_HELP = "This tab shows which equipment slots can theoretically be upgraded to reach your soft-caps, and which slots are locked by sets or settings.",
+    ALT_ITEM = "Alternative in bags",
+    GAIN = "Gain",
+    SUGGESTED_REPLACEMENT = "Recommended to replace",
+    SET_REQUIRED_FOR_BONUS = "Required for set: %s",
+    CURRENT_STATS_FORMAT = "Current stats: %s",
+    ALREADY_HAS_STAT = "Already has stat",
+    OPTIMAL_STATS = "Optimal stats",
+    EXTRA_STATS_FORMAT = "Can replace: %s",
+    ITEM_STATS_FORMAT = "Stats: %s",
+    TOTAL_EXTRA_STATS = "Total extra stats to replace: %d rating",
+    UNMET_CAPS_TITLE = "Unmet Soft-Caps",
 }
 
 -- Russian translations
@@ -211,6 +232,27 @@ local ruRU = {
     Slot_TRINKET2 = "Аксессуар 2",
     Slot_MAINHAND = "Правая рука",
     Slot_OFFHAND = "Левая рука",
+
+    -- Анализ капов
+    CAPS = "Капы",
+    CAPS_ANALYSIS = "Анализ софт-капов",
+    NO_CAPS_UNMET = "Все софт-капы успешно собраны!",
+    MISSING_CAP_FORMAT = "%s: не хватает %.2f%% (%d ед. рейтинга)",
+    LOCK_REASON = "Слот заблокирован",
+    BREAK_SET_REASON = "Разрывает комплект: %s",
+    TRADEOFF_REASON = "Приоритет других характеристик",
+    CAPS_HELP = "Эта вкладка показывает, в каких слотах можно теоретически заменить экипировку для достижения софт-капов, а какие слоты заблокированы сетами или настройками.",
+    ALT_ITEM = "Альтернатива в сумках",
+    GAIN = "Прибавка",
+    SUGGESTED_REPLACEMENT = "Рекомендуется заменить",
+    SET_REQUIRED_FOR_BONUS = "Необходимо для комплекта: %s",
+    CURRENT_STATS_FORMAT = "Текущие характеристики: %s",
+    ALREADY_HAS_STAT = "Уже содержит характеристику",
+    OPTIMAL_STATS = "Характеристики оптимизированы",
+    EXTRA_STATS_FORMAT = "Можно заменить: %s",
+    ITEM_STATS_FORMAT = "Характеристики: %s",
+    TOTAL_EXTRA_STATS = "Всего лишних характеристик для замены: %d ед. рейтинга",
+    UNMET_CAPS_TITLE = "Недостигнутые софт-капы",
 }
 
 -- Select correct translations

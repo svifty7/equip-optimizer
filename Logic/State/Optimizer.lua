@@ -54,6 +54,7 @@ function ItemEvaluator:CreateOptimizationCoroutine(candidates, currentStats, act
         local recs, finalStats = self:BuildOptimizationRecommendations(best, currentStats, ratingPerPercent)
         self.lastRecommendations = recs
         self.lastOptimizedStats = best and finalStats or currentStats
+        self.lastBestItems = best and best.items or nil
         self.isOptimizing = false
         self.optimizationProgress = 100
         self.hasOptimizationRun = true
@@ -102,8 +103,11 @@ function ItemEvaluator:StartOptimize(force)
     
     self:StopActiveOptimization()
     
+    self.activeBasePct = self:GetBaseStatPercentages()
+    
     local profile = Core.activeProfile
     local candidates, activeRules, ratingPerPercent = self:PrepareCandidates(profile)
+    self.lastCandidates = candidates
     
     self.eqStats = self:GetEquippedStats()
     local currentStats = self:GetPlayerCurrentStats()

@@ -30,6 +30,8 @@ function UI:Refresh()
             self:DrawRecs()
         elseif mainWindow.selectedTab == "gems" and self.DrawGems then
             self:DrawGems()
+        elseif mainWindow.selectedTab == "caps" and self.DrawCaps then
+            self:DrawCaps()
         else
             self:DrawSettings()
         end
@@ -108,8 +110,12 @@ function UI:CreateMainWindow()
     tabGems:SetPoint("LEFT", tabRecs, "RIGHT", 5, 0)
     UI.tabGemsBtn = tabGems
     
+    local tabCaps = self:CreateStyledButton(mainWindow, 140, 26, L.CAPS or "Caps")
+    tabCaps:SetPoint("LEFT", tabGems, "RIGHT", 5, 0)
+    UI.tabCapsBtn = tabCaps
+    
     local tabSettings = self:CreateStyledButton(mainWindow, 140, 26, L.SETTINGS or "Settings")
-    tabSettings:SetPoint("LEFT", tabGems, "RIGHT", 5, 0)
+    tabSettings:SetPoint("LEFT", tabCaps, "RIGHT", 5, 0)
     
     local recsContainer = CreateFrame("Frame", nil, mainWindow)
     recsContainer:SetSize(810, 510)
@@ -128,12 +134,20 @@ function UI:CreateMainWindow()
     gemsContainer:Hide()
     mainWindow.gemsContainer = gemsContainer
     
+    -- Caps container
+    local capsContainer = CreateFrame("Frame", nil, mainWindow)
+    capsContainer:SetSize(810, 510)
+    capsContainer:SetPoint("TOPLEFT", mainWindow, "TOPLEFT", 20, -80)
+    capsContainer:Hide()
+    mainWindow.capsContainer = capsContainer
+    
     local function SelectTab(tabName)
         mainWindow.selectedTab = tabName
         
         tabRecs.isSelected = (tabName == "recs")
         tabSettings.isSelected = (tabName == "settings")
         tabGems.isSelected = (tabName == "gems")
+        tabCaps.isSelected = (tabName == "caps")
         
         local function UpdateTabStyle(btn)
             if btn.isSelected then
@@ -148,10 +162,12 @@ function UI:CreateMainWindow()
         UpdateTabStyle(tabRecs)
         UpdateTabStyle(tabSettings)
         UpdateTabStyle(tabGems)
+        UpdateTabStyle(tabCaps)
         
         recsContainer:SetShown(tabName == "recs")
         settingsContainer:SetShown(tabName == "settings")
         gemsContainer:SetShown(tabName == "gems")
+        capsContainer:SetShown(tabName == "caps")
         
         if tabName == "recs" then
             if not ItemEvaluator.hasOptimizationRun and not ItemEvaluator.isOptimizing then
@@ -160,6 +176,8 @@ function UI:CreateMainWindow()
             UI:DrawRecs()
         elseif tabName == "gems" and UI.DrawGems then
             UI:DrawGems()
+        elseif tabName == "caps" and UI.DrawCaps then
+            UI:DrawCaps()
         else
             UI:DrawSettings()
         end
@@ -168,6 +186,7 @@ function UI:CreateMainWindow()
     tabRecs:SetScript("OnClick", function() SelectTab("recs") end)
     tabSettings:SetScript("OnClick", function() SelectTab("settings") end)
     tabGems:SetScript("OnClick", function() SelectTab("gems") end)
+    tabCaps:SetScript("OnClick", function() SelectTab("caps") end)
     
     SelectTab("recs")
     
@@ -192,7 +211,7 @@ eventFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 eventFrame:SetScript("OnEvent", function(_, event, ...)
     if UI:IsWindowOpen() then
         if not ItemEvaluator:IsEquipQueueActive() then
-            if mainWindow.selectedTab == "recs" then
+            if mainWindow.selectedTab == "recs" or mainWindow.selectedTab == "caps" then
                 ItemEvaluator:StartOptimize()
                 UI:Refresh()
             else

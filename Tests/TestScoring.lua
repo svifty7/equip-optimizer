@@ -100,6 +100,62 @@ local function RunTests()
     assert(bestCombination.stats.STAT_MASTERY >= targetMasteryRating, "Mastery goal should be satisfied since Bag Ring C provides enough mastery rating")
     
     print("\nSUCCESS: Optimization logic successfully satisfied prioritized targets!")
+    
+    -- Test CapAnalyzer offline
+    print("\nStarting Cap Analyzer offline test...")
+    
+    local testAddonTable = {
+        ItemEvaluator = ItemEvaluator,
+        Core = {
+            activeProfile = {
+                rules = {
+                    { stat = "STAT_HASTE", op = ">=", value = 30.0, enabled = true } -- Haste is 27.09%, so this should be unmet
+                },
+                lockedSlots = {},
+                requiredSets = {}
+            },
+            Slots = {
+                { id = 11, label = "Slot_FINGER1", name = "Finger 1" },
+                { id = 12, label = "Slot_FINGER2", name = "Finger 2" }
+            }
+        },
+        L = {}
+    }
+    
+    local capAnalyzerFunc = loadfile("Logic/Scoring/CapAnalyzer.lua")
+    assert(capAnalyzerFunc, "CapAnalyzer.lua should load successfully")
+    capAnalyzerFunc("EquipOptimizer", testAddonTable)
+    
+    ItemEvaluator.lastBestItems = {
+        [11] = bestCombination.items[11],
+        [12] = bestCombination.items[12]
+    }
+    ItemEvaluator.lastCandidates = candidates
+    ItemEvaluator.lastOptimizedStats = bestCombination.stats
+    
+    -- Mock GetAdjustedRequiredSets
+    function ItemEvaluator:GetAdjustedRequiredSets(profile, candidates)
+        return {}
+    end
+    
+    local analysis = ItemEvaluator:AnalyzeCaps()
+    assert(#analysis.unmet == 1, "Should identify Haste as unmet soft-cap")
+    assert(analysis.unmet[1].stat == "STAT_HASTE", "Unmet cap stat should be Haste")
+    assert(#analysis.slots > 0, "Slots list should be returned")
+    
+    local f1, f2
+    for _, slot in ipairs(analysis.slots) do
+        if slot.slotId == 11 then f1 = slot end
+        if slot.slotId == 12 then f2 = slot end
+    end
+    
+    assert(f1 ~= nil, "Finger 1 should be analyzed")
+    assert(f2 ~= nil, "Finger 2 should be analyzed")
+    assert(#f1.extraStats == 0, "Finger 1 has Haste, so it has 0 extra stats")
+    assert(#f2.extraStats == 1, "Finger 2 has Mastery (not needed in this test), so it has 1 extra stat")
+    assert(f2.extraStats[1] == "STAT_MASTERY", "Extra stat on Finger 2 should be Mastery")
+    
+    print("Cap Analyzer offline test passed!")
 end
 
 RunTests()

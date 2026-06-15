@@ -39,6 +39,7 @@ Logic\State\Optimizer.lua
 Logic\Permutation\EquipQueue.lua
 Logic\State\GemDB.lua
 Logic\Scoring\GemEvaluator.lua
+Logic\Scoring\CapAnalyzer.lua
 
 # User Interface
 UI\Widgets\Dropdown.lua
@@ -54,6 +55,7 @@ UI\Views\RecsStatsPanel.lua
 UI\Views\RecsTab.lua
 UI\Views\GemsRecommender.lua
 UI\Views\GemsTab.lua
+UI\Views\CapsTab.lua
 
 # Theme Skinning
 Skins\ElvUI_Skin.lua
