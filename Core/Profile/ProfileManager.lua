@@ -50,12 +50,10 @@ function Core:ValidateAndMigrateProfile()
     
     for _, r in ipairs(profile.rules) do
         hasStat[r.stat] = r
-        if r.enabled == nil then
-            r.enabled = true
-        end
+        r.enabled = true
         r.op = nil
         if r.stat ~= "STAT_ILVL" then
-            if not r.enabled or (r.value and r.value <= 0) then
+            if r.value and r.value <= 0 then
                 r.value = nil
             end
         else
@@ -99,9 +97,8 @@ function Core:ValidateAndMigrateProfile()
         end
         if not found then
             local isTertiary = (reqStat == "STAT_LEECH" or reqStat == "STAT_AVOIDANCE" or reqStat == "STAT_SPEED")
-            
             if isTertiary then
-                table.insert(newRules, { stat = reqStat, enabled = false })
+                table.insert(newRules, { stat = reqStat, enabled = true })
             else
                 -- Insert secondary stat before the first tertiary stat to maintain grouping
                 local insertIdx = #newRules + 1
@@ -111,7 +108,7 @@ function Core:ValidateAndMigrateProfile()
                         break
                     end
                 end
-                table.insert(newRules, insertIdx, { stat = reqStat, enabled = false })
+                table.insert(newRules, insertIdx, { stat = reqStat, enabled = true })
             end
         end
     end
@@ -153,9 +150,9 @@ function Core:UpdateProfile()
                 { stat = "STAT_VERSATILITY", enabled = true },
                 { stat = "STAT_CRIT", enabled = true },
                 { stat = "STAT_MASTERY", enabled = true },
-                { stat = "STAT_LEECH", enabled = false },
-                { stat = "STAT_AVOIDANCE", enabled = false },
-                { stat = "STAT_SPEED", enabled = false },
+                { stat = "STAT_LEECH", enabled = true },
+                { stat = "STAT_AVOIDANCE", enabled = true },
+                { stat = "STAT_SPEED", enabled = true },
             },
             lockedSlots = {},
             requiredSets = {}

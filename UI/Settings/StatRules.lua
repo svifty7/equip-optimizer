@@ -27,6 +27,7 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
         GameTooltip:AddLine(L.HELP_TOOLTIP_MIN or "", 0.9, 0.9, 0.9, true)
         GameTooltip:AddLine(L.HELP_TOOLTIP_MAX or "", 0.9, 0.9, 0.9, true)
         GameTooltip:AddLine(L.HELP_TOOLTIP_ORDER or "", 0.9, 0.9, 0.9, true)
+        GameTooltip:AddLine(L.HELP_TOOLTIP_PRIMARY or "", 0.9, 0.9, 0.9, true)
         GameTooltip:Show()
     end)
     helpBtn:SetScript("OnLeave", function()
@@ -101,10 +102,6 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                 row:SetSize(370, 28)
                 row:SetPoint("TOPLEFT", rightChild, "TOPLEFT", 0, -yOffset)
                 
-                local cb = CreateFrame("CheckButton", nil, row, "InterfaceOptionsCheckButtonTemplate")
-                cb:SetPoint("LEFT", row, "LEFT", 0, 0)
-                cb:SetChecked(rule.enabled)
-                
                 local baseText = L[rule.stat] or rule.stat
                 local currentVal = 0
                 local currentPct = 0
@@ -112,7 +109,7 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                 
                 local currentStats = ItemEvaluator:GetPlayerCurrentStats()
                 local basePct = ItemEvaluator:GetBaseStatPercentages()
-                                 currentVal = currentStats[rule.stat] or 0
+                currentVal = currentStats[rule.stat] or 0
                 if rule.stat == "STAT_HASTE" or rule.stat == "STAT_CRIT" or rule.stat == "STAT_MASTERY" or rule.stat == "STAT_VERSATILITY" then
                     local bp = basePct[rule.stat] or 0
                     currentPct = bp + ItemEvaluator:ConvertRatingToPercent(rule.stat, currentVal)
@@ -126,26 +123,14 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                 local displayText = string.format("%s (%d)", cleanText, currentVal)
                 
                 local lbl = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-                lbl:SetPoint("LEFT", row, "LEFT", 30, 0)
+                lbl:SetPoint("LEFT", row, "LEFT", 5, 0)
                 lbl:SetText(displayText)
-                lbl:SetWidth(185)
+                lbl:SetWidth(210)
                 lbl:SetJustifyH("LEFT")
                 
                 local valFrame, valEB = self:CreateEditBox(row, 45, 20, "")
                 valFrame:SetPoint("LEFT", row, "LEFT", 220, 0)
-                
-                local function UpdateRowState()
-                    if not cb:GetChecked() then
-                        valEB:SetEnabled(false)
-                        valEB:SetTextColor(0.4, 0.4, 0.4, 1)
-                        valEB:SetText("")
-                    else
-                        valEB:SetEnabled(true)
-                        valEB:SetTextColor(1, 1, 1, 1)
-                        valEB:SetText(rule.value and tostring(rule.value) or "")
-                    end
-                end
-                UpdateRowState()
+                valEB:SetText(rule.value and tostring(rule.value) or "")
                 
                 local btnUp = CreateFrame("Button", nil, row)
                 btnUp:SetSize(22, 22)
@@ -175,21 +160,7 @@ function UI:DrawStatRules(settingsContainer, profilePanel)
                     btnDown:Disable()
                 end
                 
-                cb:SetScript("OnClick", function(selfCb)
-                    rule.enabled = selfCb:GetChecked()
-                    if not rule.enabled then
-                        rule.value = nil
-                    end
-                    UpdateRowState()
-                    self:OnSettingsChanged()
-                end)
-                
                 local function ValidateValue(selfEb)
-                    if not cb:GetChecked() then
-                        rule.value = nil
-                        selfEb:SetText("")
-                        return
-                    end
                     local valStr = selfEb:GetText()
                     if valStr == "" then
                         rule.value = nil

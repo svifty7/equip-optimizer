@@ -49,9 +49,10 @@ local enUS = {
     SET_COUNT_FORMAT = "%s (owned: %d)",
     NO_SETS_FOUND = "No item sets detected in bags or equipped!",
     HELP_TOOLTIP_TITLE = "How to configure stats:",
-    HELP_TOOLTIP_MIN = "• Soft-Cap: Enter the target combat rating value (e.g. 5000) you want to reach. The addon will prioritize this stat until the cap is met, after which extra rating is heavily penalized (40% weight).",
-    HELP_TOOLTIP_MAX = "• Priority: All enabled stats are soft caps. The order determines their priority, with higher priority stats processed first.",
-    HELP_TOOLTIP_ORDER = "• Order matters! Rules higher in the list are executed first.",
+    HELP_TOOLTIP_MIN = "• Target Value (Soft-Cap): Enter the combat rating target (e.g. 1240) to reach. Beyond this value, any extra rating is heavily penalized (40% weight).",
+    HELP_TOOLTIP_MAX = "• Priority: The order of stats in the list determines their priority. Stats higher in the list are optimized first.",
+    HELP_TOOLTIP_ORDER = "• Maximize: If you leave the value blank, the addon will maximize this stat according to its priority.",
+    HELP_TOOLTIP_PRIMARY = "• Automatic Stats: Your primary stat (Intellect, Agility, Strength) and Item Level are tracked automatically and prioritized by default with the highest weights without needing manual rules.",
     IMPOSSIBLE_SET_WARN = "Warning: Set requirements for '%s' lowered from %d to %d pieces (not enough matching items in bags/equipped).",
 
     -- Gems UI
@@ -183,9 +184,10 @@ local ruRU = {
     SET_COUNT_FORMAT = "%s (есть: %d)",
     NO_SETS_FOUND = "Комплекты не найдены в сумках или на персонаже!",
     HELP_TOOLTIP_TITLE = "Как настраивать характеристики:",
-    HELP_TOOLTIP_MIN = "• Софт-кап: Введите значение целевого боевого рейтинга (например, 5000). Аддон будет стремиться набрать этот кап. При превышении излишек рейтинга оценивается с пониженным весом (40% от базового).",
-    HELP_TOOLTIP_MAX = "• Приоритет: Все включенные статы работают как софт-капы. Порядок статов определяет их важность: статы, расположенные выше в списке, обрабатываются в первую очередь.",
-    HELP_TOOLTIP_ORDER = "• Порядок важен! Правила, стоящие ВЫШЕ в списке, выполняются первыми.",
+    HELP_TOOLTIP_MIN = "• Цель (Софт-кап): Введите целевое значение боевого рейтинга (например, 1240). При превышении этого значения излишек оценивается с пониженным весом (40% от базового).",
+    HELP_TOOLTIP_MAX = "• Приоритет: Порядок характеристик в списке определяет их приоритет. Характеристики, расположенные выше, оптимизируются в первую очередь.",
+    HELP_TOOLTIP_ORDER = "• Максимизация: Если оставить поле значения пустым, аддон будет просто максимизировать эту характеристику в соответствии с её приоритетом.",
+    HELP_TOOLTIP_PRIMARY = "• Автоматические параметры: Основная характеристика (Интеллект, Ловкость, Сила) и уровень предмета (ilvl) учитываются автоматически с наивысшим приоритетом и не требуют настройки.",
     IMPOSSIBLE_SET_WARN = "Внимание: Требование комплекта '%s' снижено с %d до %d предм. (недостаточно подходящих вещей в сумках/надето).",
 
     -- Gems UI
